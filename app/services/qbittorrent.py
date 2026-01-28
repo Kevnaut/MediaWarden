@@ -40,32 +40,48 @@ def _map_qb_path(library: Library, path: str) -> str:
         if normalized.startswith(qb_root_norm):
             suffix = normalized[len(qb_root_norm):]
             return _normalize_path(f"{library.root_path.rstrip('/')}{suffix}")
+    # Heuristic: map by matching a path segment to the library root basename or library name.
+    lib_root = _normalize_path(library.root_path).rstrip("/")
+    lib_base = lib_root.split("/")[-1].lower()
+    lib_name = (library.name or "").strip().lower()
+    parts = normalized.split("/")
+    for idx, part in enumerate(parts):
+        lower = part.lower()
+        if lower and (lower == lib_base or (lib_name and lower == lib_name)):
+            suffix = "/" + "/".join(parts[idx + 1:]) if idx + 1 < len(parts) else ""
+            return _normalize_path(f"{lib_root}{suffix}")
     return normalized
 
 
-def _torrent_files(session: requests.Session, library: Library, torrent_hash: str) -> list[str]:
+def _torrent_files(session: requests.Session, library: Library, torrent_hash: str) -> list[dict]:
     url = f"{library.qb_url}/api/v2/torrents/files"
     resp = session.get(url, params={"hash": torrent_hash}, timeout=10)
     resp.raise_for_status()
     files = resp.json()
-    names = []
+    entries = []
     for entry in files:
         name = entry.get("name")
-        if name:
-            names.append(name)
-    return names
+        if not name:
+            continue
+        entries.append({"name": name, "size": entry.get("size")})
+    return entries
 
 
-def _build_file_paths(torrent: dict, files: list[str]) -> list[str]:
+def _build_file_paths(torrent: dict, files: list[dict]) -> list[tuple[str, int | None]]:
     save_path = _normalize_path(torrent.get("save_path") or "")
     content_path = _normalize_path(torrent.get("content_path") or "")
+    paths: list[tuple[str, int | None]] = []
     if files and save_path:
-        return [os.path.join(save_path, name) for name in files]
+        for entry in files:
+            paths.append((os.path.join(save_path, entry["name"]), entry.get("size")))
+        return paths
     if content_path:
         if files:
-            return [os.path.join(content_path, name) for name in files]
-        return [content_path]
-    return []
+            for entry in files:
+                paths.append((os.path.join(content_path, entry["name"]), entry.get("size")))
+        else:
+            paths.append((content_path, None))
+    return paths
 
 
 def fetch_torrents(library: Library) -> tuple[requests.Session, list[dict]]:
@@ -83,9 +99,10 @@ def remove_torrent(library: Library, torrent_hash: str, delete_files: bool = Fal
     resp.raise_for_status()
 
 
-def build_torrent_index(library: Library) -> dict[str, dict]:
+def build_torrent_index(library: Library) -> tuple[dict[str, dict], dict[str, list[tuple[dict, int | None]]]]:
     session, torrents = fetch_torrents(library)
     index: dict[str, dict] = {}
+    basename_index: dict[str, list[tuple[dict, int | None]]] = {}
     for torrent in torrents:
         torrent_hash = torrent.get("hash")
         if not torrent_hash:
@@ -95,22 +112,36 @@ def build_torrent_index(library: Library) -> dict[str, dict]:
         except Exception as exc:
             logger.warning("qbittorrent.files.failed", extra={"hash": torrent_hash, "error": str(exc)})
             files = []
-        for raw_path in _build_file_paths(torrent, files):
+        for raw_path, size in _build_file_paths(torrent, files):
             mapped = _map_qb_path(library, raw_path)
             index[mapped] = torrent
-    return index
+            base = os.path.basename(mapped)
+            if base:
+                basename_index.setdefault(base, []).append((torrent, size))
+    return index, basename_index
 
 
 def sync_library_torrents(db: Session, library: Library) -> int:
     if not library.enable_arr or not library.qb_url:
         return 0
-    index = build_torrent_index(library)
+    index, basename_index = build_torrent_index(library)
     items = db.query(MediaItem).filter(MediaItem.library_id == library.id).all()
     updated = 0
+    matched = 0
     for item in items:
         torrent = index.get(item.path)
+        if not torrent:
+            candidates = basename_index.get(os.path.basename(item.path) or "", [])
+            if len(candidates) == 1:
+                torrent = candidates[0][0]
+            elif len(candidates) > 1 and item.size_bytes:
+                for cand, size in candidates:
+                    if size and abs(size - item.size_bytes) < 2 * 1024 * 1024:
+                        torrent = cand
+                        break
         changed = False
         if torrent:
+            matched += 1
             ratio = torrent.get("ratio")
             seed_time = torrent.get("seeding_time")
             seeders = torrent.get("num_seeds")
@@ -149,4 +180,8 @@ def sync_library_torrents(db: Session, library: Library) -> int:
         if changed:
             updated += 1
     db.commit()
+    logger.info(
+        "torrent.sync.mapped",
+        extra={"library_id": library.id, "matched": matched, "total": len(items)},
+    )
     return updated
