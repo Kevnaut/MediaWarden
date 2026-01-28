@@ -29,6 +29,14 @@ def get_sections(library: Library) -> list[dict]:
     return data.get("MediaContainer", {}).get("Directory", [])
 
 
+def _get_section_by_id(library: Library, section_id: str) -> dict | None:
+    sections = get_sections(library)
+    for section in sections:
+        if str(section.get("key")) == str(section_id):
+            return section
+    return None
+
+
 def find_section_for_path(library: Library) -> dict | None:
     if library.plex_section_id:
         return {"key": library.plex_section_id}
@@ -63,11 +71,11 @@ def refresh_section(library: Library, path: str | None = None) -> None:
     logger.info("plex.refresh", extra={"library_id": library.id, "section": section_id, "path": path or ""})
 
 
-def _map_path(library: Library, plex_path: str) -> str:
-    if library.plex_root_path:
-        plex_root = library.plex_root_path.rstrip("/")
-        if plex_path.startswith(plex_root):
-            return library.root_path.rstrip("/") + plex_path[len(plex_root) :]
+def _map_path(library: Library, plex_path: str, plex_roots: list[str]) -> str:
+    for root in plex_roots:
+        root = root.rstrip("/")
+        if plex_path.startswith(root):
+            return library.root_path.rstrip("/") + plex_path[len(root) :]
     return plex_path
 
 
@@ -77,6 +85,19 @@ def fetch_metadata_map(library: Library, limit: int | None = None) -> dict:
         logger.warning("plex.section.missing", extra={"library_id": library.id})
         return {}
     section_id = section.get("key")
+    plex_roots: list[str] = []
+    if library.plex_root_path:
+        plex_roots.append(library.plex_root_path)
+    elif library.plex_section_id:
+        section_full = _get_section_by_id(library, library.plex_section_id)
+        if section_full and section_full.get("Location"):
+            locations = section_full.get("Location")
+            if isinstance(locations, dict):
+                locations = [locations]
+            for loc in locations:
+                path = loc.get("path")
+                if path:
+                    plex_roots.append(path)
     params = _token_params(library)
     if limit:
         params["X-Plex-Container-Size"] = str(limit)
@@ -113,7 +134,7 @@ def fetch_metadata_map(library: Library, limit: int | None = None) -> dict:
                     resolution = None
                     if width and height:
                         resolution = f"{width}x{height}"
-                    mapped = _map_path(library, file_path)
+                    mapped = _map_path(library, file_path, plex_roots or [file_path])
                     mapping[mapped] = {
                         "touched_at": datetime.utcfromtimestamp(touched_at) if touched_at else None,
                         "resolution": resolution,
