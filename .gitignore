@@ -12,6 +12,7 @@ venv/
 # App env
 .env
 .env.*
+!.env.example
 
 # Runtime data
 /data/
