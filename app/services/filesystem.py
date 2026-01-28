@@ -8,7 +8,7 @@ from typing import Callable, Iterable
 from sqlalchemy.orm import Session
 
 from ..models import Library, MediaItem
-from .integrations import fetch_plex_metadata, trigger_plex_rescan
+from .integrations import trigger_plex_rescan
 import logging
 
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".m4v", ".wmv", ".flv", ".ts"}
@@ -101,10 +101,7 @@ def scan_library(
             item.last_scan_at = datetime.utcnow()
             if changed:
                 updated += 1
-        if library.enable_plex:
-            meta = fetch_plex_metadata(library, item)
-            if "last_watched_at" in meta:
-                item.last_watched_at = meta["last_watched_at"]
+        # Plex metadata sync handled via manual Plex sync action.
         if progress:
             progress(
                 {

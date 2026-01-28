@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..deps import get_current_user
 from ..models import Library, MediaItem, TrashEntry
+from ..services import plex as plex_service
 from ..services.filesystem import scan_library, _iter_files
 from ..services.trash import restore_from_trash, purge_entry_now, restore_all_trash, purge_all_trash
 from ..db import SessionLocal
@@ -483,6 +484,28 @@ async def library_scan(request: Request, library_id: int, db: Session = Depends(
     if library:
         _start_scan(request.app, library.id)
         logger.info("library.scan.requested", extra={"library_id": library.id})
+    return RedirectResponse(url=f"/libraries/{library_id}", status_code=302)
+
+
+@router.post("/libraries/{library_id}/plex-sync")
+async def library_plex_sync(library_id: int, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+    library = db.get(Library, library_id)
+    if not library or not library.enable_plex:
+        return RedirectResponse(url=f"/libraries/{library_id}", status_code=302)
+    try:
+        mapping = plex_service.fetch_metadata_map(library)
+        if mapping:
+            items = db.query(MediaItem).filter(MediaItem.library_id == library.id).all()
+            updated = 0
+            for item in items:
+                last = mapping.get(item.path)
+                if last and item.last_watched_at != last:
+                    item.last_watched_at = last
+                    updated += 1
+            db.commit()
+            logger.info("plex.sync.done", extra={"library_id": library.id, "updated": updated})
+    except Exception as exc:
+        logger.warning("plex.sync.failed", extra={"library_id": library.id, "error": str(exc)})
     return RedirectResponse(url=f"/libraries/{library_id}", status_code=302)
 
 
