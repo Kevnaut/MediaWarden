@@ -33,97 +33,109 @@
     </div>
     <div class="checkboxes">
       <label><input type="checkbox" name="enable_filesystem" {% if (library and library.enable_filesystem) or (library is none) %}checked{% endif %} /> Filesystem mode</label>
-      <label><input type="checkbox" name="enable_plex" {% if library and library.enable_plex %}checked{% endif %} /> Plex integration</label>
-      <label><input type="checkbox" name="enable_arr" {% if library and library.enable_arr %}checked{% endif %} /> ARR + qBittorrent integration</label>
+      <label><input type="checkbox" name="enable_plex" id="toggle-plex" {% if library and library.enable_plex %}checked{% endif %} /> Plex integration</label>
+      <label><input type="checkbox" name="enable_arr" id="toggle-arr" {% if library and library.enable_arr %}checked{% endif %} /> ARR + qBittorrent integration</label>
     </div>
-    <div class="grid">
-      <label>Plex URL
-        <input type="text" name="plex_url" value="{{ library.plex_url if library else '' }}" />
-      </label>
-      <label>Plex Token
-        <input type="text" name="plex_token" value="{{ library.plex_token if library else '' }}" />
-      </label>
+
+    <div class="section">
+      <h3>Plex</h3>
+      <div class="section-body" id="plex-section">
+        <div class="grid">
+          <label>Plex URL
+            <input type="text" name="plex_url" value="{{ library.plex_url if library else '' }}" />
+          </label>
+          <label>Plex Token
+            <input type="text" name="plex_token" value="{{ library.plex_token if library else '' }}" />
+          </label>
+        </div>
+        {% if library and library.enable_plex %}
+        <div class="actions">
+          <button type="submit" class="ghost" formaction="/libraries/{{ library.id }}/plex-discover" formmethod="post">
+            Discover Plex sections
+          </button>
+        </div>
+        {% endif %}
+        <div class="grid">
+          <label>Plex Section ID (optional)
+            <input type="text" name="plex_section_id" value="{{ library.plex_section_id if library else '' }}" />
+          </label>
+          <label>Plex Root Path (optional)
+            <input type="text" name="plex_root_path" value="{{ library.plex_root_path if library else '' }}" />
+          </label>
+        </div>
+        <div class="grid">
+          <label>Plex Sync Interval (hours)
+            <input type="number" step="0.1" min="0" name="plex_sync_interval_hours" value="{{ library.plex_sync_interval_hours if library and library.plex_sync_interval_hours is not none else '' }}" />
+          </label>
+        </div>
+        {% if plex_sections %}
+        <div class="card">
+          <strong>Detected Plex sections</strong>
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Section ID</th>
+                <th>Type</th>
+                <th>Paths</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for section in plex_sections %}
+              <tr>
+                <td>{{ section.title }}</td>
+                <td>{{ section.key }}</td>
+                <td>{{ section.type }}</td>
+                <td>
+                  {% if section.Location %}
+                    {% for loc in section.Location %}
+                      {{ loc.path }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
     </div>
-    {% if library and library.enable_plex %}
-    <div class="actions">
-      <button type="submit" class="ghost" formaction="/libraries/{{ library.id }}/plex-discover" formmethod="post">
-        Discover Plex sections
-      </button>
-    </div>
-    {% endif %}
-    <div class="grid">
-      <label>Plex Section ID (optional)
-        <input type="text" name="plex_section_id" value="{{ library.plex_section_id if library else '' }}" />
-      </label>
-      <label>Plex Root Path (optional)
-        <input type="text" name="plex_root_path" value="{{ library.plex_root_path if library else '' }}" />
-      </label>
-    </div>
-    <div class="grid">
-      <label>Plex Sync Interval (hours)
-        <input type="number" step="0.1" min="0" name="plex_sync_interval_hours" value="{{ library.plex_sync_interval_hours if library and library.plex_sync_interval_hours is not none else '' }}" />
-      </label>
-    </div>
-    {% if plex_sections %}
-    <div class="card">
-      <strong>Detected Plex sections</strong>
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Section ID</th>
-            <th>Type</th>
-            <th>Paths</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for section in plex_sections %}
-          <tr>
-            <td>{{ section.title }}</td>
-            <td>{{ section.key }}</td>
-            <td>{{ section.type }}</td>
-            <td>
-              {% if section.Location %}
-                {% for loc in section.Location %}
-                  {{ loc.path }}{% if not loop.last %}, {% endif %}
-                {% endfor %}
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% endif %}
-    <div class="grid">
-      <label>ARR URL
-        <input type="text" name="arr_url" value="{{ library.arr_url if library else '' }}" />
-      </label>
-      <label>ARR API Key
-        <input type="text" name="arr_key" value="{{ library.arr_key if library else '' }}" />
-      </label>
-    </div>
-    <div class="grid">
-      <label>Min seed time (minutes)
-        <input type="number" name="min_seed_time_minutes" value="{{ library.min_seed_time_minutes if library else 0 }}" min="0" />
-      </label>
-      <label>Min ratio
-        <input type="number" step="0.01" name="min_seed_ratio" value="{{ library.min_seed_ratio if library else 0 }}" min="0" />
-      </label>
-      <label>Min seeders
-        <input type="number" name="min_seeders" value="{{ library.min_seeders if library else 0 }}" min="0" />
-      </label>
-    </div>
-    <div class="grid">
-      <label>qBittorrent URL
-        <input type="text" name="qb_url" value="{{ library.qb_url if library else '' }}" />
-      </label>
-      <label>qBittorrent Username
-        <input type="text" name="qb_username" value="{{ library.qb_username if library else '' }}" />
-      </label>
-      <label>qBittorrent Password
-        <input type="password" name="qb_password" value="{{ library.qb_password if library else '' }}" />
-      </label>
+
+    <div class="section">
+      <h3>ARR + qBittorrent</h3>
+      <div class="section-body" id="arr-section">
+        <div class="grid">
+          <label>ARR URL
+            <input type="text" name="arr_url" value="{{ library.arr_url if library else '' }}" />
+          </label>
+          <label>ARR API Key
+            <input type="text" name="arr_key" value="{{ library.arr_key if library else '' }}" />
+          </label>
+        </div>
+        <div class="grid">
+          <label>Min seed time (minutes)
+            <input type="number" name="min_seed_time_minutes" value="{{ library.min_seed_time_minutes if library else 0 }}" min="0" />
+          </label>
+          <label>Min ratio
+            <input type="number" step="0.01" name="min_seed_ratio" value="{{ library.min_seed_ratio if library else 0 }}" min="0" />
+          </label>
+          <label>Min seeders
+            <input type="number" name="min_seeders" value="{{ library.min_seeders if library else 0 }}" min="0" />
+          </label>
+        </div>
+        <div class="grid">
+          <label>qBittorrent URL
+            <input type="text" name="qb_url" value="{{ library.qb_url if library else '' }}" />
+          </label>
+          <label>qBittorrent Username
+            <input type="text" name="qb_username" value="{{ library.qb_username if library else '' }}" />
+          </label>
+          <label>qBittorrent Password
+            <input type="password" name="qb_password" value="{{ library.qb_password if library else '' }}" />
+          </label>
+        </div>
+      </div>
     </div>
     <div class="actions">
       <button type="submit">Save</button>
@@ -131,4 +143,27 @@
     </div>
   </form>
 </div>
+<script>
+  const plexToggle = document.getElementById("toggle-plex");
+  const arrToggle = document.getElementById("toggle-arr");
+  const plexSection = document.getElementById("plex-section");
+  const arrSection = document.getElementById("arr-section");
+
+  function updateVisibility() {
+    if (plexSection && plexToggle) {
+      plexSection.style.display = plexToggle.checked ? "block" : "none";
+    }
+    if (arrSection && arrToggle) {
+      arrSection.style.display = arrToggle.checked ? "block" : "none";
+    }
+  }
+
+  if (plexToggle) {
+    plexToggle.addEventListener("change", updateVisibility);
+  }
+  if (arrToggle) {
+    arrToggle.addEventListener("change", updateVisibility);
+  }
+  updateVisibility();
+</script>
 {% endblock %}

@@ -309,6 +309,17 @@ table.resizable th {
   padding-left: 18px;
 }
 
+.section {
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.section h3 {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+}
+
 @media (max-width: 720px) {
   .topbar {
     flex-direction: column;
