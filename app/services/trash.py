@@ -111,6 +111,9 @@ def purge_expired_trash() -> None:
                 except Exception as exc:
                     logger.error("trash.purge.error", extra={"path": str(path), "error": str(exc)})
                     continue
+            item = db.get(MediaItem, entry.media_item_id)
+            if item:
+                db.delete(item)
             db.delete(entry)
             purged += 1
         db.commit()
@@ -131,6 +134,9 @@ def purge_entry_now(db: Session, entry: TrashEntry) -> dict:
         except Exception as exc:
             logger.error("trash.purge.error", extra={"path": str(path), "error": str(exc)})
             return {"purged": False, "reason": "delete_failed"}
+    item = db.get(MediaItem, entry.media_item_id)
+    if item:
+        db.delete(item)
     db.delete(entry)
     db.commit()
     logger.info("trash.purge.manual", extra={"entry_id": entry.id})
