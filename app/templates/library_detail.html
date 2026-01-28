@@ -80,7 +80,7 @@
     <tr class="tv-show" data-show="{{ show }}">
       <td><input type="checkbox" class="tv-show-toggle" data-show="{{ show }}" /></td>
       <td class="tv-indent-0">
-        <button type="button" class="tv-toggle" data-show="{{ show }}" aria-expanded="false">▶</button>
+        <button type="button" class="tv-toggle" data-show="{{ show }}" aria-expanded="false">&gt;</button>
         <strong>{{ show }}</strong>
       </td>
       <td></td>
@@ -89,7 +89,7 @@
       <td></td>
     </tr>
       {% for season, episodes in seasons|dictsort %}
-      <tr class="tv-season" data-show="{{ show }}" data-season="{{ season }}">
+      <tr class="tv-season tv-collapsed" data-show="{{ show }}" data-season="{{ season }}">
         <td><input type="checkbox" class="tv-season-toggle" data-show="{{ show }}" data-season="{{ season }}" /></td>
         <td class="tv-indent-1">{{ season }}</td>
         <td></td>
@@ -98,7 +98,7 @@
         <td></td>
       </tr>
         {% for item in episodes|sort(attribute='name') %}
-        <tr class="tv-episode" data-show="{{ show }}" data-season="{{ season }}">
+        <tr class="tv-episode tv-collapsed" data-show="{{ show }}" data-season="{{ season }}">
           <td><input type="checkbox" name="media_ids" value="{{ item.id }}" form="bulk-action-form" data-show="{{ show }}" data-season="{{ season }}" /></td>
           <td class="tv-indent-2">{{ item.name }}</td>
           <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
@@ -237,7 +237,8 @@
   document.querySelectorAll(".tv-show-toggle").forEach((toggle) => {
     toggle.addEventListener("change", () => {
       const show = toggle.dataset.show;
-      document.querySelectorAll(`input[data-show='${show}']`).forEach((cb) => {
+      const showSel = CSS.escape(show);
+      document.querySelectorAll(`input[data-show="${showSel}"]`).forEach((cb) => {
         cb.checked = toggle.checked;
       });
     });
@@ -247,17 +248,18 @@
     toggle.addEventListener("change", () => {
       const show = toggle.dataset.show;
       const season = toggle.dataset.season;
-      document.querySelectorAll(`input[data-show='${show}'][data-season='${season}']`).forEach((cb) => {
+      document.querySelectorAll(`input[data-show="${showSel}"][data-season="${seasonSel}"]`).forEach((cb) => {
         cb.checked = toggle.checked;
       });
     });
   });
 
   function setShowCollapsed(show, collapsed) {
-    document.querySelectorAll(`.tv-season[data-show='${show}'], .tv-episode[data-show='${show}']`).forEach((row) => {
+    const showSel = CSS.escape(show);
+    document.querySelectorAll(`.tv-season[data-show="${showSel}"], .tv-episode[data-show="${showSel}"]`).forEach((row) => {
       row.classList.toggle("tv-collapsed", collapsed);
     });
-    document.querySelectorAll(`.tv-toggle[data-show='${show}']`).forEach((btn) => {
+    document.querySelectorAll(`.tv-toggle[data-show="${showSel}"]`).forEach((btn) => {
       btn.textContent = collapsed ? "▶" : "▼";
       btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
     });
