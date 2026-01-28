@@ -50,7 +50,7 @@ def _normalize_url(value: str | None) -> str | None:
     if value is None:
         return None
     cleaned = value.strip()
-    if not cleaned:
+    if not cleaned or cleaned.lower() in {"none", "null"}:
         return None
     if cleaned.startswith("http://") or cleaned.startswith("https://"):
         return cleaned
@@ -220,6 +220,8 @@ async def library_create(
     display_mode: str | None = Form("flat"),
     plex_url: str | None = Form(None),
     plex_token: str | None = Form(None),
+    plex_section_id: str | None = Form(None),
+    plex_root_path: str | None = Form(None),
     arr_url: str | None = Form(None),
     arr_key: str | None = Form(None),
     qb_url: str | None = Form(None),
@@ -241,6 +243,8 @@ async def library_create(
         display_mode=display_mode or "flat",
         plex_url=_normalize_url(plex_url),
         plex_token=plex_token,
+        plex_section_id=plex_section_id.strip() if plex_section_id else None,
+        plex_root_path=plex_root_path.strip() if plex_root_path else None,
         arr_url=_normalize_url(arr_url),
         arr_key=arr_key,
         qb_url=_normalize_url(qb_url),
@@ -456,6 +460,8 @@ async def library_update(
     display_mode: str | None = Form("flat"),
     plex_url: str | None = Form(None),
     plex_token: str | None = Form(None),
+    plex_section_id: str | None = Form(None),
+    plex_root_path: str | None = Form(None),
     arr_url: str | None = Form(None),
     arr_key: str | None = Form(None),
     qb_url: str | None = Form(None),
@@ -479,6 +485,8 @@ async def library_update(
     library.display_mode = display_mode or "flat"
     library.plex_url = _normalize_url(plex_url)
     library.plex_token = plex_token
+    library.plex_section_id = plex_section_id.strip() if plex_section_id else None
+    library.plex_root_path = plex_root_path.strip() if plex_root_path else None
     library.arr_url = _normalize_url(arr_url)
     library.arr_key = arr_key
     library.qb_url = _normalize_url(qb_url)

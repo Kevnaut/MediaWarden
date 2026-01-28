@@ -30,8 +30,10 @@ def get_sections(library: Library) -> list[dict]:
 
 
 def find_section_for_path(library: Library) -> dict | None:
+    if library.plex_section_id:
+        return {"key": library.plex_section_id}
     sections = get_sections(library)
-    root = library.root_path.rstrip("/")
+    root = (library.plex_root_path or library.root_path).rstrip("/")
     best = None
     best_len = -1
     for section in sections:

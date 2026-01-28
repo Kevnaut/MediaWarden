@@ -45,6 +45,14 @@
       </label>
     </div>
     <div class="grid">
+      <label>Plex Section ID (optional)
+        <input type="text" name="plex_section_id" value="{{ library.plex_section_id if library else '' }}" />
+      </label>
+      <label>Plex Root Path (optional)
+        <input type="text" name="plex_root_path" value="{{ library.plex_root_path if library else '' }}" />
+      </label>
+    </div>
+    <div class="grid">
       <label>ARR URL
         <input type="text" name="arr_url" value="{{ library.arr_url if library else '' }}" />
       </label>
