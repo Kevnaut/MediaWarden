@@ -201,7 +201,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db), _user=Depen
 async def library_new(request: Request, _user=Depends(get_current_user)):
     return request.app.state.templates.TemplateResponse(
         "library_form.html",
-        {"request": request, "library": None, "paths": _list_library_paths()},
+        {"request": request, "library": None, "paths": _list_library_paths(), "plex_sections": []},
     )
 
 
@@ -381,7 +381,12 @@ async def library_edit(request: Request, library_id: int, db: Session = Depends(
         paths = sorted(paths)
     return request.app.state.templates.TemplateResponse(
         "library_form.html",
-        {"request": request, "library": library, "paths": paths},
+        {
+            "request": request,
+            "library": library,
+            "paths": paths,
+            "plex_sections": request.app.state.plex_sections,
+        },
     )
 
 
@@ -526,6 +531,21 @@ async def library_plex_sync(library_id: int, db: Session = Depends(get_db), _use
     except Exception as exc:
         logger.warning("plex.sync.failed", extra={"library_id": library.id, "error": str(exc)})
     return RedirectResponse(url=f"/libraries/{library_id}", status_code=302)
+
+
+@router.post("/libraries/{library_id}/plex-discover")
+async def library_plex_discover(request: Request, library_id: int, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+    library = db.get(Library, library_id)
+    if not library or not library.enable_plex:
+        return RedirectResponse(url=f"/libraries/{library_id}/edit", status_code=302)
+    try:
+        sections = plex_service.get_sections(library)
+        request.app.state.plex_sections = sections
+        logger.info("plex.sections.loaded", extra={"library_id": library.id, "count": len(sections)})
+    except Exception as exc:
+        logger.warning("plex.sections.failed", extra={"library_id": library.id, "error": str(exc)})
+        request.app.state.plex_sections = []
+    return RedirectResponse(url=f"/libraries/{library_id}/edit", status_code=302)
 
 
 @router.get("/libraries/{library_id}/scan-status")

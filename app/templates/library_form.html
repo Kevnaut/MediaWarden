@@ -44,6 +44,13 @@
         <input type="text" name="plex_token" value="{{ library.plex_token if library else '' }}" />
       </label>
     </div>
+    {% if library and library.enable_plex %}
+    <div class="actions">
+      <form method="post" action="/libraries/{{ library.id }}/plex-discover">
+        <button type="submit" class="ghost">Discover Plex sections</button>
+      </form>
+    </div>
+    {% endif %}
     <div class="grid">
       <label>Plex Section ID (optional)
         <input type="text" name="plex_section_id" value="{{ library.plex_section_id if library else '' }}" />
@@ -52,6 +59,37 @@
         <input type="text" name="plex_root_path" value="{{ library.plex_root_path if library else '' }}" />
       </label>
     </div>
+    {% if plex_sections %}
+    <div class="card">
+      <strong>Detected Plex sections</strong>
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Section ID</th>
+            <th>Type</th>
+            <th>Paths</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for section in plex_sections %}
+          <tr>
+            <td>{{ section.title }}</td>
+            <td>{{ section.key }}</td>
+            <td>{{ section.type }}</td>
+            <td>
+              {% if section.Location %}
+                {% for loc in section.Location %}
+                  {{ loc.path }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
     <div class="grid">
       <label>ARR URL
         <input type="text" name="arr_url" value="{{ library.arr_url if library else '' }}" />

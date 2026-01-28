@@ -45,6 +45,7 @@ def on_startup():
     app.state.scheduler = scheduler
     app.state.scan_status = {}
     app.state.scan_lock = threading.Lock()
+    app.state.plex_sections = []
     logger.info("startup")
 
 
