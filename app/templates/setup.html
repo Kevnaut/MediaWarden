@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card narrow">
+  <h1>First-time setup</h1>
+  <p>Create the first admin user to continue.</p>
+  <form method="post">
+    <label>Username
+      <input type="text" name="username" required />
+    </label>
+    <label>Password
+      <input type="password" name="password" required />
+    </label>
+    <button type="submit">Create admin</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header-row">
+  <div>
+    <h1>{{ library.name }} - Trash</h1>
+    <div class="muted">{{ library.root_path }}</div>
+  </div>
+  <div class="actions">
+    <a class="button ghost" href="/libraries/{{ library.id }}">Back</a>
+  </div>
+</div>
+{% if entries %}
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Original path</th>
+      <th>Trashed at</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in entries %}
+    <tr>
+      <td>{{ entry.original_path.split('/')[-1] }}</td>
+      <td class="mono">{{ entry.original_path }}</td>
+      <td>{{ entry.trashed_at }}</td>
+      <td class="actions">
+        <form method="post" action="/trash/{{ entry.id }}/restore">
+          <button type="submit" class="ghost">Restore</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Trash is empty.</p>
+{% endif %}
+{% endblock %}

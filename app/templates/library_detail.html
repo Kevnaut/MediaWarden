@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header-row">
+  <div>
+    <h1>{{ library.name }}</h1>
+    <div class="muted">{{ library.root_path }}</div>
+  </div>
+  <div class="actions">
+    <form method="post" action="/libraries/{{ library.id }}/scan">
+      <button type="submit">Scan now</button>
+    </form>
+    <a class="button ghost" href="/libraries/{{ library.id }}/trash">Trash</a>
+    <a class="button ghost" href="/libraries/{{ library.id }}/edit">Edit</a>
+    <form method="post" action="/libraries/{{ library.id }}/delete">
+      <button type="submit" class="ghost" onclick="return confirm('Delete library? This cannot be undone.')">Delete</button>
+    </form>
+  </div>
+</div>
+<div class="card">
+  <div class="scan-status">
+    <div>
+      <strong>Scan status:</strong>
+      <span id="scan-state">idle</span>
+      <span id="scan-counts" class="muted"></span>
+    </div>
+    <progress id="scan-progress" value="0" max="100"></progress>
+  </div>
+</div>
+<div class="card">
+  <details class="filters-panel">
+    <summary>Filters</summary>
+    <form method="get" class="filters">
+      <input type="text" name="q" placeholder="Search" value="{{ q or '' }}" />
+      <input type="text" name="min_size_gb" placeholder="Min size (GB)" value="{{ min_size_gb or '' }}" />
+      <input type="text" name="resolution" placeholder="Resolution (e.g. 1920x1080)" list="resolutions" value="{{ resolution or '' }}" />
+      <datalist id="resolutions">
+        <option value="1920x1080"></option>
+        <option value="1280x720"></option>
+        <option value="3840x2160"></option>
+      </datalist>
+      <input type="text" name="older_than_days" placeholder="Older than (days)" value="{{ older_than_days or '' }}" />
+      <label class="inline"><input type="checkbox" name="missing" value="true" {% if missing %}checked{% endif %}/> Missing</label>
+      <label class="inline"><input type="checkbox" name="in_trash" value="true" {% if in_trash %}checked{% endif %}/> In trash</label>
+      <button type="submit">Apply filters</button>
+    </form>
+  </details>
+</div>
+<div class="card">
+  <form method="post" action="/media/bulk/preview" id="bulk-action-form">
+    <input type="hidden" name="action" id="bulk-action-input" value="media_only" />
+    <div class="actions">
+      <select id="bulk-action-select">
+        <option value="media_only">Remove media (trash)</option>
+        {% if library.enable_arr %}
+        <option value="torrent_only">Remove torrent only</option>
+        <option value="both">Remove torrent + media</option>
+        {% endif %}
+      </select>
+      <button type="submit">Preview action</button>
+    </div>
+  </form>
+</div>
+{% if items %}
+<table class="resizable">
+  <thead>
+    <tr>
+      <th><input type="checkbox" id="select-all" /></th>
+      <th><a href="{{ sort_url('name') }}">Name</a></th>
+      <th><a href="{{ sort_url('size') }}">Size (GB)</a></th>
+      <th><a href="{{ sort_url('resolution') }}">Resolution</a></th>
+      <th><a href="{{ sort_url('modified') }}">Modified</a></th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td><input type="checkbox" name="media_ids" value="{{ item.id }}" form="bulk-action-form" /></td>
+      <td>{{ item.name }}</td>
+      <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
+      <td>{{ item.resolution or '-' }}</td>
+      <td>{{ item.modified_at }}</td>
+      <td>
+        {% if item.is_in_trash %}<span class="tag warn">Trash</span>{% endif %}
+        {% if item.is_missing %}<span class="tag">Missing</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No items found.</p>
+{% endif %}
+<script>
+  const selectAll = document.getElementById("select-all");
+  const form = document.getElementById("bulk-action-form");
+  const actionSelect = document.getElementById("bulk-action-select");
+  const actionInput = document.getElementById("bulk-action-input");
+
+  if (selectAll) {
+    selectAll.addEventListener("change", () => {
+      document.querySelectorAll("input[name='media_ids']").forEach((cb) => {
+        cb.checked = selectAll.checked;
+      });
+    });
+  }
+
+  if (actionSelect && actionInput) {
+    actionSelect.addEventListener("change", () => {
+      actionInput.value = actionSelect.value;
+    });
+  }
+
+  async function pollScanStatus() {
+    try {
+      const res = await fetch(`/libraries/{{ library.id }}/scan-status`);
+      const data = await res.json();
+      const stateEl = document.getElementById("scan-state");
+      const countsEl = document.getElementById("scan-counts");
+      const progressEl = document.getElementById("scan-progress");
+      if (!stateEl || !countsEl || !progressEl) return;
+      stateEl.textContent = data.state || "idle";
+      const total = data.total_count || 0;
+      const scanned = data.scanned_count || 0;
+      const created = data.created_count || 0;
+      const updated = data.updated_count || 0;
+      const missing = data.missing_count || 0;
+      const percent = total ? Math.min(100, Math.round((scanned / total) * 100)) : 0;
+      progressEl.value = percent;
+      countsEl.textContent = `scanned ${scanned}/${total} | created ${created} | updated ${updated} | missing ${missing}`;
+      if (window._initialScanState === undefined) {
+        window._initialScanState = data.state || "idle";
+      }
+      if (window._initialScanState === "running" && data.state === "done" && !window._scanRefreshed) {
+        window._scanRefreshed = true;
+        setTimeout(() => window.location.reload(), 800);
+      }
+    } catch (err) {
+      // ignore polling errors
+    }
+  }
+
+  setInterval(pollScanStatus, 2000);
+  pollScanStatus();
+
+  function makeResizable(table) {
+    const headers = table.querySelectorAll("th");
+    headers.forEach((th, idx) => {
+      if (idx === 0) return;
+      th.style.position = "relative";
+      const grip = document.createElement("div");
+      grip.className = "col-resizer";
+      th.appendChild(grip);
+      let startX = 0;
+      let startWidth = 0;
+      grip.addEventListener("mousedown", (e) => {
+        startX = e.clientX;
+        startWidth = th.offsetWidth;
+        document.documentElement.style.cursor = "col-resize";
+        const onMove = (ev) => {
+          const newWidth = Math.max(80, startWidth + (ev.clientX - startX));
+          th.style.width = `${newWidth}px`;
+        };
+        const onUp = () => {
+          document.documentElement.style.cursor = "";
+          window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("mouseup", onUp);
+        };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+      });
+    });
+  }
+
+  const resizableTable = document.querySelector("table.resizable");
+  if (resizableTable) {
+    makeResizable(resizableTable);
+  }
+</script>
+{% endblock %}

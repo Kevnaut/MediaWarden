@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Dry-run preview</h1>
+  <p><strong>{{ item.name }}</strong></p>
+  <ul class="list">
+    <li>Action: {{ plan.action }}</li>
+    <li>Move media: {{ 'Yes' if plan.will_move_media else 'No' }}</li>
+    <li>Remove torrent: {{ 'Yes' if plan.will_remove_torrent else 'No' }}</li>
+  </ul>
+  {% if plan.warnings %}
+  <div class="alert">
+    <strong>Warnings</strong>
+    <ul>
+      {% for warning in plan.warnings %}
+      <li>{{ warning }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% if rule_eval %}
+  <div class="card">
+    <strong>Rule evaluation</strong>
+    <p class="muted">{{ rule_eval }}</p>
+  </div>
+  {% endif %}
+  <form method="post" action="/media/{{ item.id }}/execute">
+    <input type="hidden" name="action" value="{{ plan.action }}" />
+    <label class="inline">
+      <input type="checkbox" name="confirm" value="yes" required /> I understand this will move files to .trash.
+    </label>
+    <div class="actions">
+      <button type="submit">Confirm action</button>
+      <a class="button ghost" href="/libraries/{{ library.id }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

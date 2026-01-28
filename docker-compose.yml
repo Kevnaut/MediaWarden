@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  mediawarden:
+    build: .
+    container_name: mediawarden
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+      - "/volume1/Cassidy Share/Plex Media/Movies:/libraries/movies"
+      - "/volume1/Cassidy Share/Plex Media/TV Shows:/libraries/tv"
+    restart: unless-stopped

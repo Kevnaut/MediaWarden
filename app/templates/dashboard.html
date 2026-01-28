@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header-row">
+  <h1>Libraries</h1>
+  <a class="button" href="/libraries/new">New library</a>
+</div>
+{% if libraries %}
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Root path</th>
+      <th>Items</th>
+      <th>Modes</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for lib in libraries %}
+    <tr>
+      <td>{{ lib.name }}</td>
+      <td>{{ lib.root_path }}</td>
+      <td>{{ counts.get(lib.id, 0) }}</td>
+      <td>
+        {% if lib.enable_filesystem %}<span class="tag">Filesystem</span>{% endif %}
+        {% if lib.enable_plex %}<span class="tag">Plex</span>{% endif %}
+        {% if lib.enable_arr %}<span class="tag">ARR</span>{% endif %}
+      </td>
+      <td class="actions">
+        <a class="button" href="/libraries/{{ lib.id }}">View</a>
+        <a class="button ghost" href="/libraries/{{ lib.id }}/edit">Edit</a>
+        <form method="post" action="/libraries/{{ lib.id }}/delete">
+          <button type="submit" class="ghost" onclick="return confirm('Delete library? This cannot be undone.')">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No libraries yet. Create one to get started.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header-row">
+  <h1>{{ 'Edit library' if library else 'New library' }}</h1>
+</div>
+<div class="card">
+  <form method="post">
+    <div class="grid">
+      <label>Name
+        <input type="text" name="name" value="{{ library.name if library else '' }}" required />
+      </label>
+      <label>Root path
+        <select name="root_path" required>
+          {% for path in paths or [] %}
+          <option value="{{ path }}" {% if library and library.root_path == path %}selected{% endif %}>{{ path }}</option>
+          {% endfor %}
+          {% if library and library.root_path and (library.root_path not in (paths or [])) %}
+          <option value="{{ library.root_path }}" selected>{{ library.root_path }}</option>
+          {% endif %}
+        </select>
+      </label>
+    </div>
+    <div class="grid">
+      <label>Trash retention (days)
+        <input type="number" name="trash_retention_days" value="{{ library.trash_retention_days if library else 30 }}" min="1" />
+      </label>
+    </div>
+    <div class="checkboxes">
+      <label><input type="checkbox" name="enable_filesystem" {% if (library and library.enable_filesystem) or (library is none) %}checked{% endif %} /> Filesystem mode</label>
+      <label><input type="checkbox" name="enable_plex" {% if library and library.enable_plex %}checked{% endif %} /> Plex integration</label>
+      <label><input type="checkbox" name="enable_arr" {% if library and library.enable_arr %}checked{% endif %} /> ARR + qBittorrent integration</label>
+    </div>
+    <div class="grid">
+      <label>Plex URL
+        <input type="text" name="plex_url" value="{{ library.plex_url if library else '' }}" />
+      </label>
+      <label>Plex Token
+        <input type="text" name="plex_token" value="{{ library.plex_token if library else '' }}" />
+      </label>
+    </div>
+    <div class="grid">
+      <label>ARR URL
+        <input type="text" name="arr_url" value="{{ library.arr_url if library else '' }}" />
+      </label>
+      <label>ARR API Key
+        <input type="text" name="arr_key" value="{{ library.arr_key if library else '' }}" />
+      </label>
+    </div>
+    <div class="grid">
+      <label>Min seed time (minutes)
+        <input type="number" name="min_seed_time_minutes" value="{{ library.min_seed_time_minutes if library else 0 }}" min="0" />
+      </label>
+      <label>Min ratio
+        <input type="number" step="0.01" name="min_seed_ratio" value="{{ library.min_seed_ratio if library else 0 }}" min="0" />
+      </label>
+      <label>Min seeders
+        <input type="number" name="min_seeders" value="{{ library.min_seeders if library else 0 }}" min="0" />
+      </label>
+    </div>
+    <div class="grid">
+      <label>qBittorrent URL
+        <input type="text" name="qb_url" value="{{ library.qb_url if library else '' }}" />
+      </label>
+      <label>qBittorrent Username
+        <input type="text" name="qb_username" value="{{ library.qb_username if library else '' }}" />
+      </label>
+      <label>qBittorrent Password
+        <input type="password" name="qb_password" value="{{ library.qb_password if library else '' }}" />
+      </label>
+    </div>
+    <div class="actions">
+      <button type="submit">Save</button>
+      <a class="button ghost" href="/">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

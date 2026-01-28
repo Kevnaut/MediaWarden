@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Dry-run preview</h1>
+  <p>Action: <strong>{{ action }}</strong></p>
+  <ul class="list">
+    {% for item, plan in plans %}
+    <li>
+      <strong>{{ item.name }}</strong>
+      {% if plan.warnings %}
+      <ul>
+        {% for warning in plan.warnings %}
+        <li>{{ warning }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="/media/bulk/execute">
+    {% for item, plan in plans %}
+    <input type="hidden" name="media_ids" value="{{ item.id }}" />
+    {% endfor %}
+    <input type="hidden" name="action" value="{{ action }}" />
+    <label class="inline">
+      <input type="checkbox" name="confirm" value="yes" required /> I understand this will move files to .trash.
+    </label>
+    <div class="actions">
+      <button type="submit">Confirm action</button>
+      <a class="button ghost" href="/libraries/{{ library.id }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

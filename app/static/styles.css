@@ -1,0 +1,272 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Source+Serif+4:wght@400;600&display=swap");
+
+:root {
+  --bg: #f2efe8;
+  --bg-accent: #e2dfd6;
+  --ink: #2a2a2a;
+  --muted: #6c6b64;
+  --card: #ffffff;
+  --accent: #2b5d5b;
+  --accent-soft: #d5e4e1;
+  --danger: #c14d3c;
+  --shadow: 0 12px 30px rgba(17, 17, 17, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--ink);
+  background: radial-gradient(circle at top, var(--bg-accent), var(--bg));
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 32px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.brand {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.topbar nav a {
+  margin-left: 16px;
+  font-size: 0.95rem;
+}
+
+.content {
+  padding: 32px;
+}
+
+h1, h2 {
+  margin-top: 0;
+  font-family: "Source Serif 4", serif;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.card.narrow {
+  max-width: 420px;
+  margin: 60px auto;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+button, .button {
+  font-family: inherit;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+button.ghost, .button.ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+button:hover, .button:hover {
+  opacity: 0.9;
+}
+
+label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+label.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+input[type="text"], input[type="password"], input[type="number"] {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #d9d7d2;
+  margin-top: 6px;
+}
+
+select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #d9d7d2;
+  margin-top: 6px;
+  background: #fff;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.checkboxes {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filters-panel summary {
+  cursor: pointer;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.scan-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.scan-status progress {
+  width: 260px;
+  height: 14px;
+}
+
+.filters input[type="text"] {
+  max-width: 240px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+thead {
+  background: var(--accent-soft);
+}
+
+th, td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid #efefef;
+  font-size: 0.9rem;
+}
+
+table.resizable th {
+  position: relative;
+}
+
+.col-resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.tag {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  margin-right: 6px;
+}
+
+.tag.warn {
+  background: #f8e2dd;
+  color: var(--danger);
+}
+
+.alert {
+  background: #fdebe7;
+  border-left: 4px solid var(--danger);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.log-viewer {
+  white-space: pre-wrap;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.8rem;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.mono {
+  font-family: "Space Grotesk", monospace;
+  font-size: 0.8rem;
+}
+
+.list {
+  padding-left: 18px;
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .content {
+    padding: 20px;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
