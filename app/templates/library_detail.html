@@ -9,6 +9,9 @@
     <form method="post" action="/libraries/{{ library.id }}/scan">
       <button type="submit">Scan now</button>
     </form>
+    <form method="post" action="/libraries/{{ library.id }}/missing/clear">
+      <button type="submit" class="ghost" onclick="return confirm('Clear missing entries from this library?')">Clear missing</button>
+    </form>
     <a class="button ghost" href="/libraries/{{ library.id }}/trash">Trash</a>
     <a class="button ghost" href="/libraries/{{ library.id }}/edit">Edit</a>
     <form method="post" action="/libraries/{{ library.id }}/delete">

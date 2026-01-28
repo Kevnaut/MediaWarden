@@ -375,3 +375,18 @@ async def library_delete(library_id: int, db: Session = Depends(get_db), _user=D
         db.commit()
         logger.info("library.deleted", extra={"library_id": library_id})
     return RedirectResponse(url="/", status_code=302)
+
+
+@router.post("/libraries/{library_id}/missing/clear")
+async def library_clear_missing(library_id: int, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+    library = db.get(Library, library_id)
+    if not library:
+        return RedirectResponse(url="/", status_code=302)
+    deleted = (
+        db.query(MediaItem)
+        .filter(MediaItem.library_id == library.id, MediaItem.is_missing.is_(True), MediaItem.is_in_trash.is_(False))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    logger.info("library.missing.cleared", extra={"library_id": library.id, "deleted": deleted})
+    return RedirectResponse(url=f"/libraries/{library.id}", status_code=302)
