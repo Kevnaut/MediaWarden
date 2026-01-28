@@ -46,6 +46,17 @@ def _parse_float(value: str | None, default: float = 0.0) -> float:
         return default
 
 
+def _normalize_url(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    if cleaned.startswith("http://") or cleaned.startswith("https://"):
+        return cleaned
+    return f"http://{cleaned}"
+
+
 def _build_tv_tree(items: list[MediaItem], root_path: str) -> dict:
     tree: dict[str, dict[str, list[MediaItem]]] = {}
     for item in items:
@@ -228,11 +239,11 @@ async def library_create(
         min_seed_ratio=_parse_float(min_seed_ratio, 0.0),
         min_seeders=_parse_int(min_seeders, 0),
         display_mode=display_mode or "flat",
-        plex_url=plex_url,
+        plex_url=_normalize_url(plex_url),
         plex_token=plex_token,
-        arr_url=arr_url,
+        arr_url=_normalize_url(arr_url),
         arr_key=arr_key,
-        qb_url=qb_url,
+        qb_url=_normalize_url(qb_url),
         qb_username=qb_username,
         qb_password=qb_password,
     )
@@ -466,11 +477,11 @@ async def library_update(
     library.min_seed_ratio = _parse_float(min_seed_ratio, 0.0)
     library.min_seeders = _parse_int(min_seeders, 0)
     library.display_mode = display_mode or "flat"
-    library.plex_url = plex_url
+    library.plex_url = _normalize_url(plex_url)
     library.plex_token = plex_token
-    library.arr_url = arr_url
+    library.arr_url = _normalize_url(arr_url)
     library.arr_key = arr_key
-    library.qb_url = qb_url
+    library.qb_url = _normalize_url(qb_url)
     library.qb_username = qb_username
     library.qb_password = qb_password
     db.commit()
