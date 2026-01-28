@@ -63,7 +63,30 @@
     </div>
   </form>
 </div>
-{% if items %}
+{% if tv_tree %}
+<div class="tv-tree">
+  {% for show, seasons in tv_tree.items() %}
+  <details open>
+    <summary><strong>{{ show }}</strong></summary>
+    {% for season, episodes in seasons.items() %}
+    <details class="tv-season">
+      <summary>{{ season }}</summary>
+      <ul>
+        {% for item in episodes %}
+        <li>
+          <label class="inline">
+            <input type="checkbox" name="media_ids" value="{{ item.id }}" form="bulk-action-form" />
+            {{ item.name }}
+          </label>
+        </li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endfor %}
+  </details>
+  {% endfor %}
+</div>
+{% elif items %}
 <table class="resizable">
   <thead>
     <tr>

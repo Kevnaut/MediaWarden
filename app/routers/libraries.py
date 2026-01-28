@@ -45,6 +45,27 @@ def _parse_float(value: str | None, default: float = 0.0) -> float:
         return default
 
 
+def _build_tv_tree(items: list[MediaItem], root_path: str) -> dict:
+    tree: dict[str, dict[str, list[MediaItem]]] = {}
+    for item in items:
+        try:
+            rel = Path(item.path).relative_to(root_path)
+            parts = rel.parts
+        except ValueError:
+            parts = (item.name,)
+        if len(parts) >= 3:
+            show = parts[0]
+            season = parts[1]
+        elif len(parts) == 2:
+            show = parts[0]
+            season = "Season"
+        else:
+            show = "Unsorted"
+            season = "Unsorted"
+        tree.setdefault(show, {}).setdefault(season, []).append(item)
+    return tree
+
+
 def _update_scan_status(app, library_id: int, **fields) -> None:
     with app.state.scan_lock:
         status = app.state.scan_status.setdefault(library_id, {})
@@ -139,6 +160,7 @@ async def library_create(
     min_seed_time_minutes: str | None = Form("0"),
     min_seed_ratio: str | None = Form("0"),
     min_seeders: str | None = Form("0"),
+    display_mode: str | None = Form("flat"),
     plex_url: str | None = Form(None),
     plex_token: str | None = Form(None),
     arr_url: str | None = Form(None),
@@ -159,6 +181,7 @@ async def library_create(
         min_seed_time_minutes=_parse_int(min_seed_time_minutes, 0),
         min_seed_ratio=_parse_float(min_seed_ratio, 0.0),
         min_seeders=_parse_int(min_seeders, 0),
+        display_mode=display_mode or "flat",
         plex_url=plex_url,
         plex_token=plex_token,
         arr_url=arr_url,
@@ -228,7 +251,7 @@ async def library_detail(
     order_col = sort_map[sort_key].desc() if sort_dir == "desc" else sort_map[sort_key].asc()
     query = query.order_by(order_col)
 
-    items = query.limit(500).all()
+    items = query.limit(1000).all()
 
     params = dict(request.query_params)
 
@@ -255,6 +278,7 @@ async def library_detail(
             "sort_key": sort_key,
             "sort_dir": sort_dir,
             "sort_url": sort_url,
+            "tv_tree": _build_tv_tree(items, library.root_path) if library.display_mode == "tv_hierarchy" else None,
         },
     )
 
@@ -338,6 +362,7 @@ async def library_update(
     library.min_seed_time_minutes = _parse_int(min_seed_time_minutes, 0)
     library.min_seed_ratio = _parse_float(min_seed_ratio, 0.0)
     library.min_seeders = _parse_int(min_seeders, 0)
+    library.display_mode = display_mode or "flat"
     library.plex_url = plex_url
     library.plex_token = plex_token
     library.arr_url = arr_url

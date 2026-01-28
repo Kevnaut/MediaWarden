@@ -173,6 +173,23 @@ select {
   height: 14px;
 }
 
+.tv-tree details {
+  margin-bottom: 10px;
+}
+
+.tv-tree summary {
+  cursor: pointer;
+}
+
+.tv-season {
+  margin-left: 16px;
+}
+
+.tv-season ul {
+  list-style: none;
+  padding-left: 18px;
+}
+
 .filters input[type="text"] {
   max-width: 240px;
 }

@@ -30,6 +30,7 @@ class Library(Base):
     min_seed_time_minutes: Mapped[int] = mapped_column(Integer, default=0)
     min_seed_ratio: Mapped[float] = mapped_column(Float, default=0.0)
     min_seeders: Mapped[int] = mapped_column(Integer, default=0)
+    display_mode: Mapped[str] = mapped_column(String(32), default="flat")
 
     plex_url: Mapped[str | None] = mapped_column(Text)
     plex_token: Mapped[str | None] = mapped_column(Text)

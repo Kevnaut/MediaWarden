@@ -24,6 +24,12 @@
       <label>Trash retention (days)
         <input type="number" name="trash_retention_days" value="{{ library.trash_retention_days if library else 30 }}" min="1" />
       </label>
+      <label>Display mode
+        <select name="display_mode">
+          <option value="flat" {% if not library or library.display_mode == 'flat' %}selected{% endif %}>Flat list</option>
+          <option value="tv_hierarchy" {% if library and library.display_mode == 'tv_hierarchy' %}selected{% endif %}>TV hierarchy</option>
+        </select>
+      </label>
     </div>
     <div class="checkboxes">
       <label><input type="checkbox" name="enable_filesystem" {% if (library and library.enable_filesystem) or (library is none) %}checked{% endif %} /> Filesystem mode</label>
