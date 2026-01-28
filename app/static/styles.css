@@ -255,6 +255,16 @@ table.resizable th {
   cursor: col-resize;
 }
 
+.col-resizer::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
 .tag {
   display: inline-block;
   padding: 4px 8px;

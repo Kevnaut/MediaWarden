@@ -122,6 +122,9 @@
       <th>Size (GB)</th>
       <th>Resolution</th>
       <th>Modified</th>
+      {% if library.enable_plex %}
+      <th>Plex Touched</th>
+      {% endif %}
       <th>Status</th>
     </tr>
   </thead>
@@ -151,6 +154,9 @@
           <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
           <td>{{ item.resolution or '-' }}</td>
           <td>{{ item.modified_at.strftime('%b %d, %Y') if item.modified_at else '' }}</td>
+          {% if library.enable_plex %}
+          <td>{{ item.last_watched_at.strftime('%b %d, %Y') if item.last_watched_at else '' }}</td>
+          {% endif %}
           <td>
             {% if item.is_in_trash %}<span class="tag warn">Trash</span>{% endif %}
             {% if item.is_missing %}<span class="tag">Missing</span>{% endif %}
@@ -170,6 +176,9 @@
       <th><a href="{{ sort_url('size') }}">Size (GB)</a></th>
       <th><a href="{{ sort_url('resolution') }}">Resolution</a></th>
       <th><a href="{{ sort_url('modified') }}">Modified</a></th>
+      {% if library.enable_plex %}
+      <th>Plex Touched</th>
+      {% endif %}
       <th>Status</th>
     </tr>
   </thead>
@@ -181,6 +190,9 @@
       <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
       <td>{{ item.resolution or '-' }}</td>
       <td>{{ item.modified_at.strftime('%b %d, %Y') if item.modified_at else '' }}</td>
+      {% if library.enable_plex %}
+      <td>{{ item.last_watched_at.strftime('%b %d, %Y') if item.last_watched_at else '' }}</td>
+      {% endif %}
       <td>
         {% if item.is_in_trash %}<span class="tag warn">Trash</span>{% endif %}
         {% if item.is_missing %}<span class="tag">Missing</span>{% endif %}
