@@ -99,10 +99,11 @@ def remove_torrent(library: Library, torrent_hash: str, delete_files: bool = Fal
     resp.raise_for_status()
 
 
-def build_torrent_index(library: Library) -> tuple[dict[str, dict], dict[str, list[tuple[dict, int | None]]]]:
+def build_torrent_index(library: Library) -> tuple[dict[str, dict], dict[str, list[tuple[dict, int | None]]], list[str]]:
     session, torrents = fetch_torrents(library)
     index: dict[str, dict] = {}
     basename_index: dict[str, list[tuple[dict, int | None]]] = {}
+    sample_paths: list[str] = []
     for torrent in torrents:
         torrent_hash = torrent.get("hash")
         if not torrent_hash:
@@ -118,16 +119,25 @@ def build_torrent_index(library: Library) -> tuple[dict[str, dict], dict[str, li
             base = os.path.basename(mapped)
             if base:
                 basename_index.setdefault(base, []).append((torrent, size))
-    return index, basename_index
+            if len(sample_paths) < 3:
+                sample_paths.append(mapped)
+    return index, basename_index, sample_paths
 
 
 def sync_library_torrents(db: Session, library: Library) -> int:
     if not library.enable_arr or not library.qb_url:
         return 0
-    index, basename_index = build_torrent_index(library)
+    index, basename_index, sample_paths = build_torrent_index(library)
     items = db.query(MediaItem).filter(MediaItem.library_id == library.id).all()
     updated = 0
     matched = 0
+    suffix_maps: dict[int, dict[str, list[MediaItem]]] = {3: {}, 2: {}, 1: {}}
+    for item in items:
+        parts = _normalize_path(item.path).split("/")
+        for depth in (3, 2, 1):
+            if len(parts) >= depth:
+                key = "/".join(parts[-depth:]).lower()
+                suffix_maps[depth].setdefault(key, []).append(item)
     for item in items:
         torrent = index.get(item.path)
         if not torrent:
@@ -138,6 +148,17 @@ def sync_library_torrents(db: Session, library: Library) -> int:
                 for cand, size in candidates:
                     if size and abs(size - item.size_bytes) < 2 * 1024 * 1024:
                         torrent = cand
+                        break
+        if not torrent:
+            parts = _normalize_path(item.path).split("/")
+            for depth in (3, 2, 1):
+                if len(parts) < depth:
+                    continue
+                key = "/".join(parts[-depth:]).lower()
+                matches = suffix_maps[depth].get(key, [])
+                if len(matches) == 1:
+                    torrent = index.get(matches[0].path)
+                    if torrent:
                         break
         changed = False
         if torrent:
@@ -182,6 +203,6 @@ def sync_library_torrents(db: Session, library: Library) -> int:
     db.commit()
     logger.info(
         "torrent.sync.mapped",
-        extra={"library_id": library.id, "matched": matched, "total": len(items)},
+        extra={"library_id": library.id, "matched": matched, "total": len(items), "samples": sample_paths},
     )
     return updated
