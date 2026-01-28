@@ -80,7 +80,7 @@
     <tr class="tv-show" data-show="{{ show }}">
       <td><input type="checkbox" class="tv-show-toggle" data-show="{{ show }}" /></td>
       <td class="tv-indent-0">
-        <button type="button" class="tv-toggle" data-show="{{ show }}" aria-expanded="false">&gt;</button>
+        <button type="button" class="tv-toggle" data-show="{{ show }}" aria-expanded="false">[+]</button>
         <strong>{{ show }}</strong>
       </td>
       <td></td>
@@ -260,7 +260,7 @@
       row.classList.toggle("tv-collapsed", collapsed);
     });
     document.querySelectorAll(`.tv-toggle[data-show="${showSel}"]`).forEach((btn) => {
-      btn.textContent = collapsed ? "▶" : "▼";
+      btn.textContent = collapsed ? "[+]" : "[-]";
       btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
     });
   }
@@ -271,6 +271,14 @@
     btn.addEventListener("click", () => {
       const isCollapsed = btn.getAttribute("aria-expanded") === "false";
       setShowCollapsed(show, !isCollapsed);
+    });
+  });
+
+  // Allow clicking the show name cell to toggle as well.
+  document.querySelectorAll("tr.tv-show td.tv-indent-0").forEach((cell) => {
+    cell.addEventListener("click", () => {
+      const btn = cell.querySelector(".tv-toggle");
+      if (btn) btn.click();
     });
   });
 </script>
