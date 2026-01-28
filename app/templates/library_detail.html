@@ -150,7 +150,7 @@
           <td class="tv-indent-2">{{ item.name }}</td>
           <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
           <td>{{ item.resolution or '-' }}</td>
-          <td>{{ item.modified_at }}</td>
+          <td>{{ item.modified_at.strftime('%b %d, %Y') if item.modified_at else '' }}</td>
           <td>
             {% if item.is_in_trash %}<span class="tag warn">Trash</span>{% endif %}
             {% if item.is_missing %}<span class="tag">Missing</span>{% endif %}
@@ -180,7 +180,7 @@
       <td>{{ item.name }}</td>
       <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
       <td>{{ item.resolution or '-' }}</td>
-      <td>{{ item.modified_at }}</td>
+      <td>{{ item.modified_at.strftime('%b %d, %Y') if item.modified_at else '' }}</td>
       <td>
         {% if item.is_in_trash %}<span class="tag warn">Trash</span>{% endif %}
         {% if item.is_missing %}<span class="tag">Missing</span>{% endif %}

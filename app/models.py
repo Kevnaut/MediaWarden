@@ -36,6 +36,7 @@ class Library(Base):
     plex_token: Mapped[str | None] = mapped_column(Text)
     plex_section_id: Mapped[str | None] = mapped_column(String(32))
     plex_root_path: Mapped[str | None] = mapped_column(Text)
+    plex_sync_interval_hours: Mapped[float | None] = mapped_column(Float)
     arr_url: Mapped[str | None] = mapped_column(Text)
     arr_key: Mapped[str | None] = mapped_column(Text)
     qb_url: Mapped[str | None] = mapped_column(Text)

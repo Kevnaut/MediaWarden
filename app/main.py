@@ -12,6 +12,7 @@ from .logging import setup_logging
 from .models import User
 from .routers import auth, libraries, logs, media, users
 from .scheduler import create_scheduler
+from .models import Library
 
 setup_logging()
 logger = logging.getLogger("mediawarden")
@@ -46,6 +47,23 @@ def on_startup():
     app.state.scan_status = {}
     app.state.scan_lock = threading.Lock()
     app.state.plex_sections = []
+    # Register Plex sync jobs for libraries with a configured interval.
+    db = SessionLocal()
+    try:
+        libraries = db.query(Library).all()
+        for lib in libraries:
+            if lib.plex_sync_interval_hours and lib.plex_sync_interval_hours > 0:
+                job_id = f"plex_sync_{lib.id}"
+                scheduler.add_job(
+                    "app.scheduler:_sync_plex_library",
+                    "interval",
+                    hours=lib.plex_sync_interval_hours,
+                    id=job_id,
+                    replace_existing=True,
+                    args=[lib.id],
+                )
+    finally:
+        db.close()
     logger.info("startup")
 
 

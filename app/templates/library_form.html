@@ -59,6 +59,11 @@
         <input type="text" name="plex_root_path" value="{{ library.plex_root_path if library else '' }}" />
       </label>
     </div>
+    <div class="grid">
+      <label>Plex Sync Interval (hours)
+        <input type="number" step="0.1" min="0" name="plex_sync_interval_hours" value="{{ library.plex_sync_interval_hours if library and library.plex_sync_interval_hours is not none else '' }}" />
+      </label>
+    </div>
     {% if plex_sections %}
     <div class="card">
       <strong>Detected Plex sections</strong>

@@ -13,6 +13,7 @@ from ..db import get_db
 from ..deps import get_current_user
 from ..models import Library, MediaItem, TrashEntry
 from ..services import plex as plex_service
+from apscheduler.schedulers.base import BaseScheduler
 from ..services.filesystem import scan_library, _iter_files
 from ..services.trash import restore_from_trash, purge_entry_now, restore_all_trash, purge_all_trash
 from ..db import SessionLocal
@@ -245,6 +246,7 @@ async def library_create(
     plex_token: str | None = Form(None),
     plex_section_id: str | None = Form(None),
     plex_root_path: str | None = Form(None),
+    plex_sync_interval_hours: str | None = Form(None),
     arr_url: str | None = Form(None),
     arr_key: str | None = Form(None),
     qb_url: str | None = Form(None),
@@ -268,6 +270,7 @@ async def library_create(
         plex_token=_normalize_token(plex_token),
         plex_section_id=_normalize_text(plex_section_id),
         plex_root_path=_normalize_text(plex_root_path),
+        plex_sync_interval_hours=_parse_float(plex_sync_interval_hours, 0.0) if plex_sync_interval_hours else None,
         arr_url=_normalize_url(arr_url),
         arr_key=arr_key,
         qb_url=_normalize_url(qb_url),
@@ -490,6 +493,7 @@ async def library_update(
     plex_token: str | None = Form(None),
     plex_section_id: str | None = Form(None),
     plex_root_path: str | None = Form(None),
+    plex_sync_interval_hours: str | None = Form(None),
     arr_url: str | None = Form(None),
     arr_key: str | None = Form(None),
     qb_url: str | None = Form(None),
@@ -515,12 +519,28 @@ async def library_update(
     library.plex_token = _normalize_token(plex_token)
     library.plex_section_id = _normalize_text(plex_section_id)
     library.plex_root_path = _normalize_text(plex_root_path)
+    library.plex_sync_interval_hours = _parse_float(plex_sync_interval_hours, 0.0) if plex_sync_interval_hours else None
     library.arr_url = _normalize_url(arr_url)
     library.arr_key = arr_key
     library.qb_url = _normalize_url(qb_url)
     library.qb_username = qb_username
     library.qb_password = qb_password
     db.commit()
+    scheduler: BaseScheduler | None = getattr(request.app.state, "scheduler", None)
+    if scheduler:
+        job_id = f"plex_sync_{library.id}"
+        if library.plex_sync_interval_hours and library.plex_sync_interval_hours > 0:
+            scheduler.add_job(
+                "app.scheduler:_sync_plex_library",
+                "interval",
+                hours=library.plex_sync_interval_hours,
+                id=job_id,
+                replace_existing=True,
+                args=[library.id],
+            )
+        else:
+            if scheduler.get_job(job_id):
+                scheduler.remove_job(job_id)
     logger.info("library.updated", extra={"library_id": library.id, "library_name": library.name})
     return RedirectResponse(url=f"/libraries/{library_id}", status_code=302)
 
