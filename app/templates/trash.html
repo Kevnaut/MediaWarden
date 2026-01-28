@@ -6,6 +6,12 @@
     <div class="muted">{{ library.root_path }}</div>
   </div>
   <div class="actions">
+    <form method="post" action="/libraries/{{ library.id }}/trash/restore-all">
+      <button type="submit" class="ghost" onclick="return confirm('Restore all items from trash?')">Restore all</button>
+    </form>
+    <form method="post" action="/libraries/{{ library.id }}/trash/purge-all">
+      <button type="submit" class="ghost" onclick="return confirm('Purge all items permanently? This cannot be undone.')">Purge all</button>
+    </form>
     <a class="button ghost" href="/libraries/{{ library.id }}">Back</a>
   </div>
 </div>

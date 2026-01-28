@@ -13,7 +13,7 @@ from ..db import get_db
 from ..deps import get_current_user
 from ..models import Library, MediaItem, TrashEntry
 from ..services.filesystem import scan_library, _iter_files
-from ..services.trash import restore_from_trash, purge_entry_now
+from ..services.trash import restore_from_trash, purge_entry_now, restore_all_trash, purge_all_trash
 from ..db import SessionLocal
 
 router = APIRouter()
@@ -407,6 +407,24 @@ async def trash_purge(entry_id: int, db: Session = Depends(get_db), _user=Depend
     if not library:
         return RedirectResponse(url="/", status_code=302)
     purge_entry_now(db, entry)
+    return RedirectResponse(url=f"/libraries/{library.id}/trash", status_code=302)
+
+
+@router.post("/libraries/{library_id}/trash/restore-all")
+async def trash_restore_all(library_id: int, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+    library = db.get(Library, library_id)
+    if not library:
+        return RedirectResponse(url="/", status_code=302)
+    restore_all_trash(db, library)
+    return RedirectResponse(url=f"/libraries/{library.id}/trash", status_code=302)
+
+
+@router.post("/libraries/{library_id}/trash/purge-all")
+async def trash_purge_all(library_id: int, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+    library = db.get(Library, library_id)
+    if not library:
+        return RedirectResponse(url="/", status_code=302)
+    purge_all_trash(db, library)
     return RedirectResponse(url=f"/libraries/{library.id}/trash", status_code=302)
 
 

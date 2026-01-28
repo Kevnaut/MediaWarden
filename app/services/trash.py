@@ -135,3 +135,23 @@ def purge_entry_now(db: Session, entry: TrashEntry) -> dict:
     db.commit()
     logger.info("trash.purge.manual", extra={"entry_id": entry.id})
     return {"purged": True}
+
+
+def restore_all_trash(db: Session, library: Library) -> int:
+    entries = db.query(TrashEntry).filter(TrashEntry.library_id == library.id).all()
+    restored = 0
+    for entry in entries:
+        result = restore_from_trash(db, library, entry)
+        if result.get("restored"):
+            restored += 1
+    return restored
+
+
+def purge_all_trash(db: Session, library: Library) -> int:
+    entries = db.query(TrashEntry).filter(TrashEntry.library_id == library.id).all()
+    purged = 0
+    for entry in entries:
+        result = purge_entry_now(db, entry)
+        if result.get("purged"):
+            purged += 1
+    return purged
