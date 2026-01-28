@@ -29,6 +29,9 @@
         <form method="post" action="/trash/{{ entry.id }}/restore">
           <button type="submit" class="ghost">Restore</button>
         </form>
+        <form method="post" action="/trash/{{ entry.id }}/purge">
+          <button type="submit" class="ghost" onclick="return confirm('Purge permanently? This cannot be undone.')">Purge now</button>
+        </form>
       </td>
     </tr>
     {% endfor %}

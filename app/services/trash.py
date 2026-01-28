@@ -118,3 +118,20 @@ def purge_expired_trash() -> None:
             logger.info("trash.purge.done", extra={"purged": purged})
     finally:
         db.close()
+
+
+def purge_entry_now(db: Session, entry: TrashEntry) -> dict:
+    path = Path(entry.trashed_path)
+    if path.exists() and ".trash" in path.parts:
+        try:
+            if path.is_dir():
+                shutil.rmtree(path)
+            else:
+                path.unlink()
+        except Exception as exc:
+            logger.error("trash.purge.error", extra={"path": str(path), "error": str(exc)})
+            return {"purged": False, "reason": "delete_failed"}
+    db.delete(entry)
+    db.commit()
+    logger.info("trash.purge.manual", extra={"entry_id": entry.id})
+    return {"purged": True}
