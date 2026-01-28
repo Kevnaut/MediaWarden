@@ -522,9 +522,19 @@ async def library_plex_sync(library_id: int, db: Session = Depends(get_db), _use
             items = db.query(MediaItem).filter(MediaItem.library_id == library.id).all()
             updated = 0
             for item in items:
-                last = mapping.get(item.path)
-                if last and item.last_watched_at != last:
-                    item.last_watched_at = last
+                meta = mapping.get(item.path)
+                if not meta:
+                    continue
+                touched_at = meta.get("touched_at")
+                resolution = meta.get("resolution")
+                changed = False
+                if touched_at and item.last_watched_at != touched_at:
+                    item.last_watched_at = touched_at
+                    changed = True
+                if resolution and item.resolution != resolution:
+                    item.resolution = resolution
+                    changed = True
+                if changed:
                     updated += 1
             db.commit()
             logger.info("plex.sync.done", extra={"library_id": library.id, "updated": updated})

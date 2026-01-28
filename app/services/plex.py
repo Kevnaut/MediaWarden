@@ -63,6 +63,14 @@ def refresh_section(library: Library, path: str | None = None) -> None:
     logger.info("plex.refresh", extra={"library_id": library.id, "section": section_id, "path": path or ""})
 
 
+def _map_path(library: Library, plex_path: str) -> str:
+    if library.plex_root_path:
+        plex_root = library.plex_root_path.rstrip("/")
+        if plex_path.startswith(plex_root):
+            return library.root_path.rstrip("/") + plex_path[len(plex_root) :]
+    return plex_path
+
+
 def fetch_metadata_map(library: Library, limit: int | None = None) -> dict:
     section = find_section_for_path(library)
     if not section:
@@ -77,20 +85,37 @@ def fetch_metadata_map(library: Library, limit: int | None = None) -> dict:
     resp.raise_for_status()
     data = resp.json()
     items = data.get("MediaContainer", {}).get("Metadata", [])
-    mapping = {}
+    mapping: dict[str, dict] = {}
     for item in items:
         last_viewed = item.get("lastViewedAt")
-        if not last_viewed:
-            continue
+        updated_at = item.get("updatedAt")
+        touched_at = None
+        if last_viewed:
+            touched_at = int(last_viewed)
+        if updated_at:
+            touched_at = max(touched_at or 0, int(updated_at)) or int(updated_at)
         media = item.get("Media", [])
         if isinstance(media, dict):
             media = [media]
         for media_item in media:
+            width = media_item.get("width")
+            height = media_item.get("height")
             parts = media_item.get("Part", [])
             if isinstance(parts, dict):
                 parts = [parts]
             for part in parts:
                 file_path = part.get("file")
                 if file_path:
-                    mapping[file_path] = datetime.utcfromtimestamp(int(last_viewed))
+                    if not width:
+                        width = part.get("width")
+                    if not height:
+                        height = part.get("height")
+                    resolution = None
+                    if width and height:
+                        resolution = f"{width}x{height}"
+                    mapped = _map_path(library, file_path)
+                    mapping[mapped] = {
+                        "touched_at": datetime.utcfromtimestamp(touched_at) if touched_at else None,
+                        "resolution": resolution,
+                    }
     return mapping
