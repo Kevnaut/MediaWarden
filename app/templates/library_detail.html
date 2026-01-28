@@ -49,8 +49,14 @@
   </details>
 </div>
 <div class="card">
+  {% if tv_shows %}
+  <form method="post" action="/media/bulk-show/preview" id="bulk-show-form">
+    <input type="hidden" name="library_id" value="{{ library.id }}" />
+    <input type="hidden" name="action" id="bulk-show-action-input" value="media_only" />
+  {% else %}
   <form method="post" action="/media/bulk/preview" id="bulk-action-form">
     <input type="hidden" name="action" id="bulk-action-input" value="media_only" />
+  {% endif %}
     <div class="actions">
       <select id="bulk-action-select">
         <option value="media_only">Remove media (trash)</option>
@@ -67,6 +73,7 @@
 <table class="tv-table">
   <thead>
     <tr>
+      <th><input type="checkbox" id="select-all" /></th>
       <th>Name</th>
       <th>Items</th>
       <th></th>
@@ -75,6 +82,7 @@
   <tbody>
     {% for show in tv_shows %}
     <tr>
+      <td><input type="checkbox" class="tv-show-select" name="show_names" value="{{ show }}" form="bulk-show-form" /></td>
       <td><strong>{{ show }}</strong></td>
       <td>{{ tv_show_counts.get(show, 0) }}</td>
       <td class="actions"><a class="button ghost" href="{{ show_url(show) }}">Open</a></td>
@@ -174,6 +182,8 @@
   const selectAll = document.getElementById("select-all");
   const actionSelect = document.getElementById("bulk-action-select");
   const actionInput = document.getElementById("bulk-action-input");
+  const bulkShowActionInput = document.getElementById("bulk-show-action-input");
+  const bulkShowSelect = document.getElementById("bulk-action-select");
 
   if (selectAll) {
     selectAll.addEventListener("change", () => {
@@ -183,12 +193,21 @@
       document.querySelectorAll(".tv-show-toggle, .tv-season-toggle").forEach((cb) => {
         cb.checked = selectAll.checked;
       });
+      document.querySelectorAll(".tv-show-select").forEach((cb) => {
+        cb.checked = selectAll.checked;
+      });
     });
   }
 
   if (actionSelect && actionInput) {
     actionSelect.addEventListener("change", () => {
       actionInput.value = actionSelect.value;
+    });
+  }
+
+  if (bulkShowSelect && bulkShowActionInput) {
+    bulkShowSelect.addEventListener("change", () => {
+      bulkShowActionInput.value = bulkShowSelect.value;
     });
   }
 

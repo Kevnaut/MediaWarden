@@ -17,11 +17,19 @@
     </li>
     {% endfor %}
   </ul>
-  <form method="post" action="/media/bulk/execute">
+  <form method="post" action="{{ execute_url or '/media/bulk/execute' }}">
     {% for item, plan in plans %}
     <input type="hidden" name="media_ids" value="{{ item.id }}" />
     {% endfor %}
     <input type="hidden" name="action" value="{{ action }}" />
+    {% if library_id %}
+    <input type="hidden" name="library_id" value="{{ library_id }}" />
+    {% endif %}
+    {% if show_names %}
+      {% for name in show_names %}
+      <input type="hidden" name="show_names" value="{{ name }}" />
+      {% endfor %}
+    {% endif %}
     <label class="inline">
       <input type="checkbox" name="confirm" value="yes" required /> I understand this will move files to .trash.
     </label>
