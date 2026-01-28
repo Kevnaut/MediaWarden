@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from types import SimpleNamespace
 
 from ..db import get_db
 from ..deps import get_current_user
@@ -15,8 +16,10 @@ from ..models import Library, MediaItem, TrashEntry
 from ..services import plex as plex_service
 from apscheduler.schedulers.base import BaseScheduler
 from ..services.filesystem import scan_library, _iter_files
+from ..services.qbittorrent import sync_library_torrents
 from ..services.trash import restore_from_trash, purge_entry_now, restore_all_trash, purge_all_trash
 from ..db import SessionLocal
+from ..utils import parse_duration_to_seconds
 
 router = APIRouter()
 logger = logging.getLogger("mediawarden.libraries")
@@ -79,6 +82,32 @@ def _normalize_text(value: str | None) -> str | None:
     if not cleaned or cleaned.lower() in {"none", "null"}:
         return None
     return cleaned
+
+
+def _validate_arr_config(
+    enable_arr: bool,
+    qb_url: str | None,
+    qb_username: str | None,
+    qb_password: str | None,
+    sonarr_url: str | None,
+    sonarr_key: str | None,
+    radarr_url: str | None,
+    radarr_key: str | None,
+) -> list[str]:
+    if not enable_arr:
+        return []
+    errors: list[str] = []
+    if not qb_url or not qb_username or not qb_password:
+        errors.append("qBittorrent URL, username, and password are required when ARR integration is enabled.")
+    has_sonarr = bool(sonarr_url and sonarr_key)
+    has_radarr = bool(radarr_url and radarr_key)
+    if not (has_sonarr or has_radarr):
+        errors.append("Provide Sonarr or Radarr URL + API key to enable ARR integration.")
+    if (sonarr_url and not sonarr_key) or (sonarr_key and not sonarr_url):
+        errors.append("Sonarr URL and API key must both be filled.")
+    if (radarr_url and not radarr_key) or (radarr_key and not radarr_url):
+        errors.append("Radarr URL and API key must both be filled.")
+    return errors
 
 
 def _build_tv_tree(items: list[MediaItem], root_path: str) -> dict:
@@ -180,6 +209,12 @@ def _scan_worker(app, library_id: int) -> None:
             _update_scan_status(app, library_id, **payload)
 
         scan_library(db, library, total_files=total, progress=_progress)
+        if library.enable_arr and library.qb_url:
+            try:
+                updated = sync_library_torrents(db, library)
+                logger.info("torrent.sync.done", extra={"library_id": library.id, "updated": updated})
+            except Exception as exc:
+                logger.warning("torrent.sync.failed", extra={"library_id": library.id, "error": str(exc)})
         _update_scan_status(app, library_id, state="done", finished_at=datetime.utcnow().isoformat() + "Z")
     except Exception as exc:
         _update_scan_status(app, library_id, state="error", error=str(exc))
@@ -247,14 +282,83 @@ async def library_create(
     plex_section_id: str | None = Form(None),
     plex_root_path: str | None = Form(None),
     plex_sync_interval_hours: str | None = Form(None),
-    arr_url: str | None = Form(None),
-    arr_key: str | None = Form(None),
+    sonarr_url: str | None = Form(None),
+    sonarr_key: str | None = Form(None),
+    radarr_url: str | None = Form(None),
+    radarr_key: str | None = Form(None),
+    overseerr_url: str | None = Form(None),
+    overseerr_key: str | None = Form(None),
     qb_url: str | None = Form(None),
     qb_username: str | None = Form(None),
     qb_password: str | None = Form(None),
+    qb_root_path: str | None = Form(None),
     db: Session = Depends(get_db),
     _user=Depends(get_current_user),
 ):
+    norm_plex_url = _normalize_url(plex_url)
+    norm_plex_token = _normalize_token(plex_token)
+    norm_plex_section = _normalize_text(plex_section_id)
+    norm_plex_root = _normalize_text(plex_root_path)
+    norm_plex_interval = _parse_float(plex_sync_interval_hours, 0.0) if plex_sync_interval_hours else None
+    norm_sonarr_url = _normalize_url(sonarr_url)
+    norm_sonarr_key = _normalize_token(sonarr_key)
+    norm_radarr_url = _normalize_url(radarr_url)
+    norm_radarr_key = _normalize_token(radarr_key)
+    norm_overseerr_url = _normalize_url(overseerr_url)
+    norm_overseerr_key = _normalize_token(overseerr_key)
+    norm_qb_url = _normalize_url(qb_url)
+    norm_qb_username = qb_username.strip() if qb_username else None
+    norm_qb_password = qb_password.strip() if qb_password else None
+    norm_qb_root = _normalize_text(qb_root_path)
+    errors = _validate_arr_config(
+        enable_arr,
+        norm_qb_url,
+        norm_qb_username,
+        norm_qb_password,
+        norm_sonarr_url,
+        norm_sonarr_key,
+        norm_radarr_url,
+        norm_radarr_key,
+    )
+    if errors:
+        form_library = SimpleNamespace(
+            id=None,
+            name=name,
+            root_path=root_path,
+            enable_filesystem=enable_filesystem,
+            enable_plex=enable_plex,
+            enable_arr=enable_arr,
+            trash_retention_days=_parse_int(trash_retention_days, 30),
+            min_seed_time_minutes=_parse_int(min_seed_time_minutes, 0),
+            min_seed_ratio=_parse_float(min_seed_ratio, 0.0),
+            min_seeders=_parse_int(min_seeders, 0),
+            display_mode=display_mode or "flat",
+            plex_url=norm_plex_url or "",
+            plex_token=norm_plex_token or "",
+            plex_section_id=norm_plex_section or "",
+            plex_root_path=norm_plex_root or "",
+            plex_sync_interval_hours=norm_plex_interval,
+            sonarr_url=norm_sonarr_url or "",
+            sonarr_key=norm_sonarr_key or "",
+            radarr_url=norm_radarr_url or "",
+            radarr_key=norm_radarr_key or "",
+            overseerr_url=norm_overseerr_url or "",
+            overseerr_key=norm_overseerr_key or "",
+            qb_url=norm_qb_url or "",
+            qb_username=norm_qb_username or "",
+            qb_password=norm_qb_password or "",
+            qb_root_path=norm_qb_root or "",
+        )
+        return request.app.state.templates.TemplateResponse(
+            "library_form.html",
+            {
+                "request": request,
+                "library": form_library,
+                "paths": _list_library_paths(),
+                "plex_sections": [],
+                "errors": errors,
+            },
+        )
     library = Library(
         name=name.strip(),
         root_path=root_path.strip(),
@@ -266,16 +370,21 @@ async def library_create(
         min_seed_ratio=_parse_float(min_seed_ratio, 0.0),
         min_seeders=_parse_int(min_seeders, 0),
         display_mode=display_mode or "flat",
-        plex_url=_normalize_url(plex_url),
-        plex_token=_normalize_token(plex_token),
-        plex_section_id=_normalize_text(plex_section_id),
-        plex_root_path=_normalize_text(plex_root_path),
-        plex_sync_interval_hours=_parse_float(plex_sync_interval_hours, 0.0) if plex_sync_interval_hours else None,
-        arr_url=_normalize_url(arr_url),
-        arr_key=arr_key,
-        qb_url=_normalize_url(qb_url),
-        qb_username=qb_username,
-        qb_password=qb_password,
+        plex_url=norm_plex_url,
+        plex_token=norm_plex_token,
+        plex_section_id=norm_plex_section,
+        plex_root_path=norm_plex_root,
+        plex_sync_interval_hours=norm_plex_interval,
+        sonarr_url=norm_sonarr_url,
+        sonarr_key=norm_sonarr_key,
+        radarr_url=norm_radarr_url,
+        radarr_key=norm_radarr_key,
+        overseerr_url=norm_overseerr_url,
+        overseerr_key=norm_overseerr_key,
+        qb_url=norm_qb_url,
+        qb_username=norm_qb_username,
+        qb_password=norm_qb_password,
+        qb_root_path=norm_qb_root,
     )
     db.add(library)
     db.commit()
@@ -294,7 +403,10 @@ async def library_detail(
     min_size_gb: str | None = None,
     resolution: str | None = None,
     older_than_days: str | None = None,
-    last_watched_older_than_days: str | None = None,
+    min_seed_time: str | None = None,
+    min_ratio: str | None = None,
+    min_seeders: str | None = None,
+    min_leechers: str | None = None,
     sort: str | None = None,
     direction: str | None = None,
     show: str | None = None,
@@ -332,19 +444,35 @@ async def library_detail(
             query = query.filter(MediaItem.modified_at <= cutoff)
         except ValueError:
             pass
-    if last_watched_older_than_days and library.enable_plex:
-        try:
-            cutoff = datetime.utcnow() - timedelta(days=float(last_watched_older_than_days))
-            query = query.filter(MediaItem.last_watched_at <= cutoff)
-        except ValueError:
-            pass
-
+    if library.enable_arr:
+        if min_seed_time:
+            seconds = parse_duration_to_seconds(min_seed_time)
+            if seconds is not None:
+                query = query.filter(MediaItem.torrent_seed_time >= seconds)
+        if min_ratio:
+            try:
+                query = query.filter(MediaItem.torrent_ratio >= float(min_ratio))
+            except ValueError:
+                pass
+        if min_seeders:
+            try:
+                query = query.filter(MediaItem.torrent_seeders >= int(min_seeders))
+            except ValueError:
+                pass
+        if min_leechers:
+            try:
+                query = query.filter(MediaItem.torrent_leechers >= int(min_leechers))
+            except ValueError:
+                pass
     sort_map = {
         "name": MediaItem.name,
         "size": MediaItem.size_bytes,
         "modified": MediaItem.modified_at,
         "resolution": MediaItem.resolution,
-        "plex": MediaItem.last_watched_at,
+        "seed_time": MediaItem.torrent_seed_time,
+        "ratio": MediaItem.torrent_ratio,
+        "seeders": MediaItem.torrent_seeders,
+        "leechers": MediaItem.torrent_leechers,
     }
     sort_key = sort if sort in sort_map else "name"
     sort_dir = "desc" if direction == "desc" else "asc"
@@ -390,7 +518,10 @@ async def library_detail(
             "min_size_gb": min_size_gb,
             "resolution": resolution,
             "older_than_days": older_than_days,
-            "last_watched_older_than_days": last_watched_older_than_days,
+            "min_seed_time": min_seed_time,
+            "min_ratio": min_ratio,
+            "min_seeders": min_seeders,
+            "min_leechers": min_leechers,
             "sort_key": sort_key,
             "sort_dir": sort_dir,
             "sort_url": sort_url,
@@ -503,17 +634,89 @@ async def library_update(
     plex_section_id: str | None = Form(None),
     plex_root_path: str | None = Form(None),
     plex_sync_interval_hours: str | None = Form(None),
-    arr_url: str | None = Form(None),
-    arr_key: str | None = Form(None),
+    sonarr_url: str | None = Form(None),
+    sonarr_key: str | None = Form(None),
+    radarr_url: str | None = Form(None),
+    radarr_key: str | None = Form(None),
+    overseerr_url: str | None = Form(None),
+    overseerr_key: str | None = Form(None),
     qb_url: str | None = Form(None),
     qb_username: str | None = Form(None),
     qb_password: str | None = Form(None),
+    qb_root_path: str | None = Form(None),
     db: Session = Depends(get_db),
     _user=Depends(get_current_user),
 ):
     library = db.get(Library, library_id)
     if not library:
         return RedirectResponse(url="/", status_code=302)
+    norm_plex_url = _normalize_url(plex_url)
+    norm_plex_token = _normalize_token(plex_token)
+    norm_plex_section = _normalize_text(plex_section_id)
+    norm_plex_root = _normalize_text(plex_root_path)
+    norm_plex_interval = _parse_float(plex_sync_interval_hours, 0.0) if plex_sync_interval_hours else None
+    norm_sonarr_url = _normalize_url(sonarr_url)
+    norm_sonarr_key = _normalize_token(sonarr_key)
+    norm_radarr_url = _normalize_url(radarr_url)
+    norm_radarr_key = _normalize_token(radarr_key)
+    norm_overseerr_url = _normalize_url(overseerr_url)
+    norm_overseerr_key = _normalize_token(overseerr_key)
+    norm_qb_url = _normalize_url(qb_url)
+    norm_qb_username = qb_username.strip() if qb_username else None
+    norm_qb_password = qb_password.strip() if qb_password else None
+    norm_qb_root = _normalize_text(qb_root_path)
+    errors = _validate_arr_config(
+        enable_arr,
+        norm_qb_url,
+        norm_qb_username,
+        norm_qb_password,
+        norm_sonarr_url,
+        norm_sonarr_key,
+        norm_radarr_url,
+        norm_radarr_key,
+    )
+    if errors:
+        form_library = SimpleNamespace(
+            id=library.id,
+            name=name,
+            root_path=root_path,
+            enable_filesystem=enable_filesystem,
+            enable_plex=enable_plex,
+            enable_arr=enable_arr,
+            trash_retention_days=_parse_int(trash_retention_days, 30),
+            min_seed_time_minutes=_parse_int(min_seed_time_minutes, 0),
+            min_seed_ratio=_parse_float(min_seed_ratio, 0.0),
+            min_seeders=_parse_int(min_seeders, 0),
+            display_mode=display_mode or "flat",
+            plex_url=norm_plex_url or "",
+            plex_token=norm_plex_token or "",
+            plex_section_id=norm_plex_section or "",
+            plex_root_path=norm_plex_root or "",
+            plex_sync_interval_hours=norm_plex_interval,
+            sonarr_url=norm_sonarr_url or "",
+            sonarr_key=norm_sonarr_key or "",
+            radarr_url=norm_radarr_url or "",
+            radarr_key=norm_radarr_key or "",
+            overseerr_url=norm_overseerr_url or "",
+            overseerr_key=norm_overseerr_key or "",
+            qb_url=norm_qb_url or "",
+            qb_username=norm_qb_username or "",
+            qb_password=norm_qb_password or "",
+            qb_root_path=norm_qb_root or "",
+        )
+        paths = _list_library_paths()
+        if root_path and root_path not in paths:
+            paths.append(root_path)
+        return request.app.state.templates.TemplateResponse(
+            "library_form.html",
+            {
+                "request": request,
+                "library": form_library,
+                "paths": sorted(paths),
+                "plex_sections": request.app.state.plex_sections,
+                "errors": errors,
+            },
+        )
     library.name = name.strip()
     library.root_path = root_path.strip()
     library.enable_filesystem = enable_filesystem
@@ -524,16 +727,21 @@ async def library_update(
     library.min_seed_ratio = _parse_float(min_seed_ratio, 0.0)
     library.min_seeders = _parse_int(min_seeders, 0)
     library.display_mode = display_mode or "flat"
-    library.plex_url = _normalize_url(plex_url)
-    library.plex_token = _normalize_token(plex_token)
-    library.plex_section_id = _normalize_text(plex_section_id)
-    library.plex_root_path = _normalize_text(plex_root_path)
-    library.plex_sync_interval_hours = _parse_float(plex_sync_interval_hours, 0.0) if plex_sync_interval_hours else None
-    library.arr_url = _normalize_url(arr_url)
-    library.arr_key = arr_key
-    library.qb_url = _normalize_url(qb_url)
-    library.qb_username = qb_username
-    library.qb_password = qb_password
+    library.plex_url = norm_plex_url
+    library.plex_token = norm_plex_token
+    library.plex_section_id = norm_plex_section
+    library.plex_root_path = norm_plex_root
+    library.plex_sync_interval_hours = norm_plex_interval
+    library.sonarr_url = norm_sonarr_url
+    library.sonarr_key = norm_sonarr_key
+    library.radarr_url = norm_radarr_url
+    library.radarr_key = norm_radarr_key
+    library.overseerr_url = norm_overseerr_url
+    library.overseerr_key = norm_overseerr_key
+    library.qb_url = norm_qb_url
+    library.qb_username = norm_qb_username
+    library.qb_password = norm_qb_password
+    library.qb_root_path = norm_qb_root
     db.commit()
     scheduler: BaseScheduler | None = getattr(request.app.state, "scheduler", None)
     if scheduler:
@@ -592,6 +800,19 @@ async def library_plex_sync(library_id: int, db: Session = Depends(get_db), _use
             logger.info("plex.sync.done", extra={"library_id": library.id, "updated": updated})
     except Exception as exc:
         logger.warning("plex.sync.failed", extra={"library_id": library.id, "error": str(exc)})
+    return RedirectResponse(url=f"/libraries/{library_id}", status_code=302)
+
+
+@router.post("/libraries/{library_id}/torrent-sync")
+async def library_torrent_sync(library_id: int, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+    library = db.get(Library, library_id)
+    if not library or not library.enable_arr:
+        return RedirectResponse(url=f"/libraries/{library_id}", status_code=302)
+    try:
+        updated = sync_library_torrents(db, library)
+        logger.info("torrent.sync.done", extra={"library_id": library.id, "updated": updated})
+    except Exception as exc:
+        logger.warning("torrent.sync.failed", extra={"library_id": library.id, "error": str(exc)})
     return RedirectResponse(url=f"/libraries/{library_id}", status_code=302)
 
 

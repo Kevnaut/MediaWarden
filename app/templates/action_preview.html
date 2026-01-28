@@ -21,7 +21,17 @@
   {% if rule_eval %}
   <div class="card">
     <strong>Rule evaluation</strong>
-    <p class="muted">{{ rule_eval }}</p>
+    <p class="muted">
+      {{ 'Meets thresholds' if rule_eval.ok else 'Below thresholds' }} ({{ rule_eval.reason }})
+    </p>
+    <ul class="list">
+      <li>Seed time: {{ rule_eval.seed_time_seconds|seedtime if rule_eval.seed_time_seconds is defined else '-' }}</li>
+      <li>Ratio: {{ "%.2f"|format(rule_eval.ratio) if rule_eval.ratio is defined else '-' }}</li>
+      <li>Seeders: {{ rule_eval.seeders if rule_eval.seeders is defined else '-' }}</li>
+      <li>Min seed time (minutes): {{ rule_eval.min_seed_time_minutes }}</li>
+      <li>Min ratio: {{ rule_eval.min_seed_ratio }}</li>
+      <li>Min seeders: {{ rule_eval.min_seeders }}</li>
+    </ul>
   </div>
   {% endif %}
   <form method="post" action="/media/{{ item.id }}/execute">

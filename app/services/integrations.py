@@ -24,10 +24,28 @@ def evaluate_torrent_rules(library: Library, item: MediaItem) -> dict:
             "min_seed_ratio": library.min_seed_ratio,
             "min_seeders": library.min_seeders,
         }
-    logger.info("torrent.rules.skipped", extra={"library_id": library.id, "media_item_id": item.id})
+    if not item.torrent_hash:
+        return {
+            "ok": False,
+            "reason": "no_torrent",
+            "min_seed_time_minutes": library.min_seed_time_minutes,
+            "min_seed_ratio": library.min_seed_ratio,
+            "min_seeders": library.min_seeders,
+        }
+    seed_time_seconds = item.torrent_seed_time or 0
+    ratio = item.torrent_ratio or 0.0
+    seeders = item.torrent_seeders or 0
+    min_seed_time_seconds = library.min_seed_time_minutes * 60
+    seed_time_ok = seed_time_seconds >= min_seed_time_seconds
+    ratio_ok = ratio >= library.min_seed_ratio
+    seeders_ok = seeders >= library.min_seeders
+    ok = seed_time_ok and ratio_ok and seeders_ok
     return {
-        "ok": False,
-        "reason": "not_implemented",
+        "ok": ok,
+        "reason": "meets_thresholds" if ok else "below_thresholds",
+        "seed_time_seconds": seed_time_seconds,
+        "ratio": ratio,
+        "seeders": seeders,
         "min_seed_time_minutes": library.min_seed_time_minutes,
         "min_seed_ratio": library.min_seed_ratio,
         "min_seeders": library.min_seeders,

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..models import Library, MediaItem
 from .trash import move_to_trash
+from .qbittorrent import remove_torrent, QbittorrentError
 
 logger = logging.getLogger("mediawarden.actions")
 
@@ -55,13 +56,37 @@ def execute_action(db: Session, library: Library, item: MediaItem, action: str) 
     result = {"action": action, "media_item_id": item.id, "warnings": plan.warnings}
 
     if plan.will_remove_torrent:
-        # Integration placeholder - do not remove torrent without explicit support.
-        logger.info(
-            "action.torrent.skipped",
-            extra={"media_item_id": item.id, "reason": "integration_not_configured"},
-        )
-        result["torrent_removed"] = False
-        result["torrent_reason"] = "integration_not_configured"
+        if library.enable_arr and library.qb_url and item.torrent_hash:
+            try:
+                remove_torrent(library, item.torrent_hash, delete_files=False)
+                result["torrent_removed"] = True
+                item.torrent_hash = None
+                item.torrent_ratio = None
+                item.torrent_seed_time = None
+                item.torrent_seeders = None
+                item.torrent_leechers = None
+                db.commit()
+            except QbittorrentError as exc:
+                logger.warning(
+                    "action.torrent.failed",
+                    extra={"media_item_id": item.id, "reason": str(exc)},
+                )
+                result["torrent_removed"] = False
+                result["torrent_reason"] = str(exc)
+            except Exception as exc:
+                logger.warning(
+                    "action.torrent.failed",
+                    extra={"media_item_id": item.id, "reason": str(exc)},
+                )
+                result["torrent_removed"] = False
+                result["torrent_reason"] = "unexpected_error"
+        else:
+            logger.info(
+                "action.torrent.skipped",
+                extra={"media_item_id": item.id, "reason": "integration_not_configured"},
+            )
+            result["torrent_removed"] = False
+            result["torrent_reason"] = "integration_not_configured"
 
     if plan.will_move_media:
         move_result = move_to_trash(db, library, item)

@@ -211,6 +211,11 @@ body[data-theme="dark"] select {
   color: var(--ink);
 }
 
+body[data-theme="dark"] select option {
+  background: #121715;
+  color: var(--ink);
+}
+
 body[data-theme="dark"] input[type="text"]::placeholder,
 body[data-theme="dark"] input[type="password"]::placeholder,
 body[data-theme="dark"] input[type="number"]::placeholder {

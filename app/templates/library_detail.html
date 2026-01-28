@@ -14,6 +14,11 @@
       <button type="submit" class="ghost">Plex sync</button>
     </form>
     {% endif %}
+    {% if library.enable_arr %}
+    <form method="post" action="/libraries/{{ library.id }}/torrent-sync">
+      <button type="submit" class="ghost">Torrent sync</button>
+    </form>
+    {% endif %}
     <form method="post" action="/libraries/{{ library.id }}/missing/clear">
       <button type="submit" class="ghost" onclick="return confirm('Clear missing entries from this library?')">Clear missing</button>
     </form>
@@ -47,6 +52,12 @@
         <option value="3840x2160"></option>
       </datalist>
       <input type="text" name="older_than_days" placeholder="Modified older than (days)" value="{{ older_than_days or '' }}" />
+      {% if library.enable_arr %}
+      <input type="text" name="min_seed_time" placeholder="Min seed time (e.g. 2d 1h)" value="{{ min_seed_time or '' }}" />
+      <input type="text" name="min_ratio" placeholder="Min ratio" value="{{ min_ratio or '' }}" />
+      <input type="text" name="min_seeders" placeholder="Min seeders" value="{{ min_seeders or '' }}" />
+      <input type="text" name="min_leechers" placeholder="Min leechers" value="{{ min_leechers or '' }}" />
+      {% endif %}
       <label class="inline"><input type="checkbox" name="missing" value="true" {% if missing %}checked{% endif %}/> Missing</label>
       <label class="inline"><input type="checkbox" name="in_trash" value="true" {% if in_trash %}checked{% endif %}/> In trash</label>
       <button type="submit">Apply filters</button>
@@ -122,6 +133,12 @@
       <th>Size (GB)</th>
       <th>Resolution</th>
       <th>Modified</th>
+      {% if library.enable_arr %}
+      <th>Seed time</th>
+      <th>Ratio</th>
+      <th>Seeders</th>
+      <th>Leechers</th>
+      {% endif %}
       <th>Status</th>
     </tr>
   </thead>
@@ -133,17 +150,29 @@
       <td></td>
       <td></td>
       <td></td>
+      {% if library.enable_arr %}
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      {% endif %}
       <td></td>
     </tr>
       {% for season, episodes in seasons|dictsort %}
       <tr class="tv-season" data-show="{{ show }}" data-season="{{ season }}">
         <td><input type="checkbox" class="tv-season-toggle" data-show="{{ show }}" data-season="{{ season }}" /></td>
-        <td class="tv-indent-1">{{ season }}</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
+      <td class="tv-indent-1">{{ season }}</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      {% if library.enable_arr %}
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      {% endif %}
+      <td></td>
+    </tr>
         {% for item in episodes|sort(attribute='name') %}
         <tr class="tv-episode" data-show="{{ show }}" data-season="{{ season }}">
           <td><input type="checkbox" name="media_ids" value="{{ item.id }}" form="bulk-action-form" data-show="{{ show }}" data-season="{{ season }}" /></td>
@@ -151,6 +180,12 @@
           <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
           <td>{{ item.resolution or '-' }}</td>
           <td>{{ item.modified_at.strftime('%b %d, %Y') if item.modified_at else '' }}</td>
+          {% if library.enable_arr %}
+          <td>{{ item.torrent_seed_time|seedtime }}</td>
+          <td>{{ "%.2f"|format(item.torrent_ratio) if item.torrent_ratio is not none else '-' }}</td>
+          <td>{{ item.torrent_seeders if item.torrent_seeders is not none else '-' }}</td>
+          <td>{{ item.torrent_leechers if item.torrent_leechers is not none else '-' }}</td>
+          {% endif %}
           <td>
             {% if item.is_in_trash %}<span class="tag warn">Trash</span>{% endif %}
             {% if item.is_missing %}<span class="tag">Missing</span>{% endif %}
@@ -170,6 +205,12 @@
       <th><a href="{{ sort_url('size') }}">Size (GB)</a></th>
       <th><a href="{{ sort_url('resolution') }}">Resolution</a></th>
       <th><a href="{{ sort_url('modified') }}">Modified</a></th>
+      {% if library.enable_arr %}
+      <th><a href="{{ sort_url('seed_time') }}">Seed time</a></th>
+      <th><a href="{{ sort_url('ratio') }}">Ratio</a></th>
+      <th><a href="{{ sort_url('seeders') }}">Seeders</a></th>
+      <th><a href="{{ sort_url('leechers') }}">Leechers</a></th>
+      {% endif %}
       <th>Status</th>
     </tr>
   </thead>
@@ -181,6 +222,12 @@
       <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
       <td>{{ item.resolution or '-' }}</td>
       <td>{{ item.modified_at.strftime('%b %d, %Y') if item.modified_at else '' }}</td>
+      {% if library.enable_arr %}
+      <td>{{ item.torrent_seed_time|seedtime }}</td>
+      <td>{{ "%.2f"|format(item.torrent_ratio) if item.torrent_ratio is not none else '-' }}</td>
+      <td>{{ item.torrent_seeders if item.torrent_seeders is not none else '-' }}</td>
+      <td>{{ item.torrent_leechers if item.torrent_leechers is not none else '-' }}</td>
+      {% endif %}
       <td>
         {% if item.is_in_trash %}<span class="tag warn">Trash</span>{% endif %}
         {% if item.is_missing %}<span class="tag">Missing</span>{% endif %}

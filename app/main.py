@@ -13,6 +13,7 @@ from .models import User
 from .routers import auth, libraries, logs, media, users
 from .scheduler import create_scheduler
 from .models import Library
+from .utils import format_duration
 
 setup_logging()
 logger = logging.getLogger("mediawarden")
@@ -22,6 +23,7 @@ app = FastAPI(title="MediaWarden")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.state.templates = Jinja2Templates(directory="app/templates")
+app.state.templates.env.filters["seedtime"] = format_duration
 
 
 @app.on_event("startup")

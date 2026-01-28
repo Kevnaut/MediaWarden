@@ -4,6 +4,16 @@
   <h1>{{ 'Edit library' if library else 'New library' }}</h1>
 </div>
 <div class="card">
+  {% if errors %}
+  <div class="alert">
+    <strong>Fix the following</strong>
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
   <form method="post">
     <div class="grid">
       <label>Name
@@ -106,11 +116,43 @@
       <h3>ARR + qBittorrent</h3>
       <div class="section-body" id="arr-section">
         <div class="grid">
-          <label>ARR URL
-            <input type="text" name="arr_url" value="{{ library.arr_url if library else '' }}" />
+          <label>Sonarr URL
+            <input type="text" name="sonarr_url" value="{{ library.sonarr_url if library else '' }}" data-required="arr" />
           </label>
-          <label>ARR API Key
-            <input type="text" name="arr_key" value="{{ library.arr_key if library else '' }}" />
+          <label>Sonarr API Key
+            <input type="text" name="sonarr_key" value="{{ library.sonarr_key if library else '' }}" data-required="arr" />
+          </label>
+        </div>
+        <div class="grid">
+          <label>Radarr URL
+            <input type="text" name="radarr_url" value="{{ library.radarr_url if library else '' }}" data-required="arr" />
+          </label>
+          <label>Radarr API Key
+            <input type="text" name="radarr_key" value="{{ library.radarr_key if library else '' }}" data-required="arr" />
+          </label>
+        </div>
+        <div class="grid">
+          <label>Overseerr URL (optional)
+            <input type="text" name="overseerr_url" value="{{ library.overseerr_url if library else '' }}" />
+          </label>
+          <label>Overseerr API Key (optional)
+            <input type="text" name="overseerr_key" value="{{ library.overseerr_key if library else '' }}" />
+          </label>
+        </div>
+        <div class="grid">
+          <label>qBittorrent URL
+            <input type="text" name="qb_url" value="{{ library.qb_url if library else '' }}" data-required="arr" />
+          </label>
+          <label>qBittorrent Username
+            <input type="text" name="qb_username" value="{{ library.qb_username if library else '' }}" data-required="arr" />
+          </label>
+          <label>qBittorrent Password
+            <input type="password" name="qb_password" value="{{ library.qb_password if library else '' }}" data-required="arr" />
+          </label>
+        </div>
+        <div class="grid">
+          <label>qBittorrent Root Path (optional)
+            <input type="text" name="qb_root_path" value="{{ library.qb_root_path if library else '' }}" />
           </label>
         </div>
         <div class="grid">
@@ -122,17 +164,6 @@
           </label>
           <label>Min seeders
             <input type="number" name="min_seeders" value="{{ library.min_seeders if library else 0 }}" min="0" />
-          </label>
-        </div>
-        <div class="grid">
-          <label>qBittorrent URL
-            <input type="text" name="qb_url" value="{{ library.qb_url if library else '' }}" />
-          </label>
-          <label>qBittorrent Username
-            <input type="text" name="qb_username" value="{{ library.qb_username if library else '' }}" />
-          </label>
-          <label>qBittorrent Password
-            <input type="password" name="qb_password" value="{{ library.qb_password if library else '' }}" />
           </label>
         </div>
       </div>
@@ -156,6 +187,9 @@
     if (arrSection && arrToggle) {
       arrSection.style.display = arrToggle.checked ? "block" : "none";
     }
+    document.querySelectorAll("[data-required='arr']").forEach((input) => {
+      input.required = arrToggle && arrToggle.checked;
+    });
   }
 
   if (plexToggle) {
