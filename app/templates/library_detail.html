@@ -76,6 +76,7 @@
       <th><input type="checkbox" id="select-all" /></th>
       <th>Name</th>
       <th>Items</th>
+      <th>Status</th>
       <th></th>
     </tr>
   </thead>
@@ -85,6 +86,14 @@
       <td><input type="checkbox" class="tv-show-select" name="show_names" value="{{ show }}" form="bulk-show-form" /></td>
       <td><strong>{{ show }}</strong></td>
       <td>{{ tv_show_counts.get(show, 0) }}</td>
+      <td>
+        {% if tv_show_flags and tv_show_flags.get(show, {}).get('trash', 0) > 0 %}
+        <span class="tag warn">Trash</span>
+        {% endif %}
+        {% if tv_show_flags and tv_show_flags.get(show, {}).get('missing', 0) > 0 %}
+        <span class="tag">Missing</span>
+        {% endif %}
+      </td>
       <td class="actions"><a class="button ghost" href="{{ show_url(show) }}">Open</a></td>
     </tr>
     {% endfor %}

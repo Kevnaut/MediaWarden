@@ -92,6 +92,25 @@ def _count_tv_shows(items: list[MediaItem], root_path: str) -> dict[str, int]:
     return counts
 
 
+def _count_tv_show_flags(items: list[MediaItem], root_path: str) -> dict[str, dict[str, int]]:
+    flags: dict[str, dict[str, int]] = {}
+    for item in items:
+        try:
+            rel = Path(item.path).relative_to(root_path)
+            parts = rel.parts
+        except ValueError:
+            parts = (item.name,)
+        if not parts:
+            continue
+        show = parts[0]
+        entry = flags.setdefault(show, {"trash": 0, "missing": 0})
+        if item.is_in_trash:
+            entry["trash"] += 1
+        if item.is_missing:
+            entry["missing"] += 1
+    return flags
+
+
 def _update_scan_status(app, library_id: int, **fields) -> None:
     with app.state.scan_lock:
         status = app.state.scan_status.setdefault(library_id, {})
@@ -300,12 +319,14 @@ async def library_detail(
     tv_tree = None
     tv_shows = None
     tv_show_counts = None
+    tv_show_flags = None
     if library.display_mode == "tv_hierarchy":
         if show:
             tv_tree = _build_tv_tree(items, library.root_path)
         else:
             tv_shows = _list_tv_shows(items, library.root_path)
             tv_show_counts = _count_tv_shows(items, library.root_path)
+            tv_show_flags = _count_tv_show_flags(items, library.root_path)
 
     return request.app.state.templates.TemplateResponse(
         "library_detail.html",
@@ -325,6 +346,7 @@ async def library_detail(
             "tv_tree": tv_tree,
             "tv_shows": tv_shows,
             "tv_show_counts": tv_show_counts,
+            "tv_show_flags": tv_show_flags,
             "current_show": show,
             "show_url": show_url,
             "show_prefix": show_prefix,
