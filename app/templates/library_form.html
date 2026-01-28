@@ -46,9 +46,9 @@
     </div>
     {% if library and library.enable_plex %}
     <div class="actions">
-      <form method="post" action="/libraries/{{ library.id }}/plex-discover">
-        <button type="submit" class="ghost">Discover Plex sections</button>
-      </form>
+      <button type="submit" class="ghost" formaction="/libraries/{{ library.id }}/plex-discover" formmethod="post">
+        Discover Plex sections
+      </button>
     </div>
     {% endif %}
     <div class="grid">
