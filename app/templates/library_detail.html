@@ -63,7 +63,35 @@
     </div>
   </form>
 </div>
-{% if tv_tree %}
+{% if tv_shows %}
+<table class="tv-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Items</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for show in tv_shows %}
+    <tr>
+      <td><strong>{{ show }}</strong></td>
+      <td>{{ tv_show_counts.get(show, 0) }}</td>
+      <td class="actions"><a class="button ghost" href="{{ show_url(show) }}">Open</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% elif tv_tree %}
+<div class="header-row">
+  <div>
+    <h2>{{ current_show }}</h2>
+    <div class="muted">TV hierarchy view</div>
+  </div>
+  <div class="actions">
+    <a class="button ghost" href="/libraries/{{ library.id }}">Back to shows</a>
+  </div>
+</div>
 <table class="tv-table">
   <thead>
     <tr>
@@ -79,17 +107,14 @@
     {% for show, seasons in tv_tree|dictsort %}
     <tr class="tv-show" data-show="{{ show }}">
       <td><input type="checkbox" class="tv-show-toggle" data-show="{{ show }}" /></td>
-      <td class="tv-indent-0">
-        <button type="button" class="tv-toggle" data-show="{{ show }}" aria-expanded="false">[+]</button>
-        <strong>{{ show }}</strong>
-      </td>
+      <td class="tv-indent-0"><strong>{{ show }}</strong></td>
       <td></td>
       <td></td>
       <td></td>
       <td></td>
     </tr>
       {% for season, episodes in seasons|dictsort %}
-      <tr class="tv-season tv-collapsed" data-show="{{ show }}" data-season="{{ season }}">
+      <tr class="tv-season" data-show="{{ show }}" data-season="{{ season }}">
         <td><input type="checkbox" class="tv-season-toggle" data-show="{{ show }}" data-season="{{ season }}" /></td>
         <td class="tv-indent-1">{{ season }}</td>
         <td></td>
@@ -98,7 +123,7 @@
         <td></td>
       </tr>
         {% for item in episodes|sort(attribute='name') %}
-        <tr class="tv-episode tv-collapsed" data-show="{{ show }}" data-season="{{ season }}">
+        <tr class="tv-episode" data-show="{{ show }}" data-season="{{ season }}">
           <td><input type="checkbox" name="media_ids" value="{{ item.id }}" form="bulk-action-form" data-show="{{ show }}" data-season="{{ season }}" /></td>
           <td class="tv-indent-2">{{ item.name }}</td>
           <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
@@ -147,7 +172,6 @@
 {% endif %}
 <script>
   const selectAll = document.getElementById("select-all");
-  const form = document.getElementById("bulk-action-form");
   const actionSelect = document.getElementById("bulk-action-select");
   const actionInput = document.getElementById("bulk-action-input");
 
@@ -248,37 +272,11 @@
     toggle.addEventListener("change", () => {
       const show = toggle.dataset.show;
       const season = toggle.dataset.season;
+      const showSel = CSS.escape(show);
+      const seasonSel = CSS.escape(season);
       document.querySelectorAll(`input[data-show="${showSel}"][data-season="${seasonSel}"]`).forEach((cb) => {
         cb.checked = toggle.checked;
       });
-    });
-  });
-
-  function setShowCollapsed(show, collapsed) {
-    const showSel = CSS.escape(show);
-    document.querySelectorAll(`.tv-season[data-show="${showSel}"], .tv-episode[data-show="${showSel}"]`).forEach((row) => {
-      row.classList.toggle("tv-collapsed", collapsed);
-    });
-    document.querySelectorAll(`.tv-toggle[data-show="${showSel}"]`).forEach((btn) => {
-      btn.textContent = collapsed ? "[+]" : "[-]";
-      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    });
-  }
-
-  document.querySelectorAll(".tv-toggle").forEach((btn) => {
-    const show = btn.dataset.show;
-    setShowCollapsed(show, true);
-    btn.addEventListener("click", () => {
-      const isCollapsed = btn.getAttribute("aria-expanded") === "false";
-      setShowCollapsed(show, !isCollapsed);
-    });
-  });
-
-  // Allow clicking the show name cell to toggle as well.
-  document.querySelectorAll("tr.tv-show td.tv-indent-0").forEach((cell) => {
-    cell.addEventListener("click", () => {
-      const btn = cell.querySelector(".tv-toggle");
-      if (btn) btn.click();
     });
   });
 </script>

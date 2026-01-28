@@ -2,7 +2,7 @@ import logging
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse, JSONResponse
@@ -64,6 +64,32 @@ def _build_tv_tree(items: list[MediaItem], root_path: str) -> dict:
             season = "Unsorted"
         tree.setdefault(show, {}).setdefault(season, []).append(item)
     return tree
+
+
+def _list_tv_shows(items: list[MediaItem], root_path: str) -> list[str]:
+    shows: set[str] = set()
+    for item in items:
+        try:
+            rel = Path(item.path).relative_to(root_path)
+            parts = rel.parts
+        except ValueError:
+            parts = (item.name,)
+        if parts:
+            shows.add(parts[0])
+    return sorted(shows)
+
+
+def _count_tv_shows(items: list[MediaItem], root_path: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in items:
+        try:
+            rel = Path(item.path).relative_to(root_path)
+            parts = rel.parts
+        except ValueError:
+            parts = (item.name,)
+        if parts:
+            counts[parts[0]] = counts.get(parts[0], 0) + 1
+    return counts
 
 
 def _update_scan_status(app, library_id: int, **fields) -> None:
@@ -209,6 +235,7 @@ async def library_detail(
     older_than_days: str | None = None,
     sort: str | None = None,
     direction: str | None = None,
+    show: str | None = None,
     db: Session = Depends(get_db),
     _user=Depends(get_current_user),
 ):
@@ -216,6 +243,10 @@ async def library_detail(
     if not library:
         return RedirectResponse(url="/", status_code=302)
     query = db.query(MediaItem).filter(MediaItem.library_id == library.id)
+    show_prefix = None
+    if library.display_mode == "tv_hierarchy" and show:
+        show_prefix = f"{library.root_path.rstrip('/')}/{show}"
+        query = query.filter(MediaItem.path.like(f"{show_prefix}%"))
     if q:
         like = f"%{q}%"
         query = query.filter(MediaItem.name.ilike(like))
@@ -251,7 +282,7 @@ async def library_detail(
     order_col = sort_map[sort_key].desc() if sort_dir == "desc" else sort_map[sort_key].asc()
     query = query.order_by(order_col)
 
-    items = query.limit(1000).all()
+    items = query.limit(2000).all()
 
     params = dict(request.query_params)
 
@@ -262,6 +293,19 @@ async def library_detail(
         params["sort"] = field
         params["direction"] = next_dir
         return f"/libraries/{library_id}?" + urlencode(params)
+
+    def show_url(name: str) -> str:
+        return f"/libraries/{library_id}?show=" + quote(name)
+
+    tv_tree = None
+    tv_shows = None
+    tv_show_counts = None
+    if library.display_mode == "tv_hierarchy":
+        if show:
+            tv_tree = _build_tv_tree(items, library.root_path)
+        else:
+            tv_shows = _list_tv_shows(items, library.root_path)
+            tv_show_counts = _count_tv_shows(items, library.root_path)
 
     return request.app.state.templates.TemplateResponse(
         "library_detail.html",
@@ -278,7 +322,12 @@ async def library_detail(
             "sort_key": sort_key,
             "sort_dir": sort_dir,
             "sort_url": sort_url,
-            "tv_tree": _build_tv_tree(items, library.root_path) if library.display_mode == "tv_hierarchy" else None,
+            "tv_tree": tv_tree,
+            "tv_shows": tv_shows,
+            "tv_show_counts": tv_show_counts,
+            "current_show": show,
+            "show_url": show_url,
+            "show_prefix": show_prefix,
         },
     )
 
@@ -340,6 +389,7 @@ async def library_update(
     min_seed_time_minutes: str | None = Form("0"),
     min_seed_ratio: str | None = Form("0"),
     min_seeders: str | None = Form("0"),
+    display_mode: str | None = Form("flat"),
     plex_url: str | None = Form(None),
     plex_token: str | None = Form(None),
     arr_url: str | None = Form(None),
