@@ -13,7 +13,11 @@
       <a href="/">Libraries</a>
       <a href="/users">Users</a>
       <a href="/logs">Logs</a>
-      <button type="button" class="theme-toggle" id="theme-toggle">Theme</button>
+      <div class="theme-switch" id="theme-toggle" role="button" aria-label="Toggle theme" tabindex="0">
+        <span class="sun">☀︎</span>
+        <span class="moon">☾</span>
+        <span class="thumb"></span>
+      </div>
       <a href="/logout">Logout</a>
     </nav>
   </header>
@@ -26,14 +30,28 @@
     if (stored) {
       document.body.setAttribute("data-theme", stored);
     }
+    function applyTheme(next) {
+      document.body.setAttribute("data-theme", next);
+      localStorage.setItem("mw-theme", next);
+      if (toggle) {
+        toggle.setAttribute("data-theme", next);
+      }
+    }
     if (toggle) {
       toggle.addEventListener("click", () => {
         const current = document.body.getAttribute("data-theme") || "light";
         const next = current === "dark" ? "light" : "dark";
-        document.body.setAttribute("data-theme", next);
-        localStorage.setItem("mw-theme", next);
+        applyTheme(next);
+      });
+      toggle.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggle.click();
+        }
       });
     }
+    const initial = stored || "light";
+    applyTheme(initial);
   </script>
 </body>
 </html>

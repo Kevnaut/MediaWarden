@@ -47,9 +47,6 @@
         <option value="3840x2160"></option>
       </datalist>
       <input type="text" name="older_than_days" placeholder="Modified older than (days)" value="{{ older_than_days or '' }}" />
-      {% if library.enable_plex %}
-      <input type="text" name="last_watched_older_than_days" placeholder="Last watched older than (days)" value="{{ last_watched_older_than_days or '' }}" />
-      {% endif %}
       <label class="inline"><input type="checkbox" name="missing" value="true" {% if missing %}checked{% endif %}/> Missing</label>
       <label class="inline"><input type="checkbox" name="in_trash" value="true" {% if in_trash %}checked{% endif %}/> In trash</label>
       <button type="submit">Apply filters</button>
@@ -125,9 +122,6 @@
       <th>Size (GB)</th>
       <th>Resolution</th>
       <th>Modified</th>
-      {% if library.enable_plex %}
-      <th>Last Watched</th>
-      {% endif %}
       <th>Status</th>
     </tr>
   </thead>
@@ -157,9 +151,6 @@
           <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
           <td>{{ item.resolution or '-' }}</td>
           <td>{{ item.modified_at.strftime('%b %d, %Y') if item.modified_at else '' }}</td>
-          {% if library.enable_plex %}
-          <td>{{ item.last_watched_at.strftime('%b %d, %Y') if item.last_watched_at else '' }}</td>
-          {% endif %}
           <td>
             {% if item.is_in_trash %}<span class="tag warn">Trash</span>{% endif %}
             {% if item.is_missing %}<span class="tag">Missing</span>{% endif %}
@@ -179,9 +170,6 @@
       <th><a href="{{ sort_url('size') }}">Size (GB)</a></th>
       <th><a href="{{ sort_url('resolution') }}">Resolution</a></th>
       <th><a href="{{ sort_url('modified') }}">Modified</a></th>
-      {% if library.enable_plex %}
-      <th><a href="{{ sort_url('plex') }}">Last Watched</a></th>
-      {% endif %}
       <th>Status</th>
     </tr>
   </thead>
@@ -193,9 +181,6 @@
       <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
       <td>{{ item.resolution or '-' }}</td>
       <td>{{ item.modified_at.strftime('%b %d, %Y') if item.modified_at else '' }}</td>
-      {% if library.enable_plex %}
-      <td>{{ item.last_watched_at.strftime('%b %d, %Y') if item.last_watched_at else '' }}</td>
-      {% endif %}
       <td>
         {% if item.is_in_trash %}<span class="tag warn">Trash</span>{% endif %}
         {% if item.is_missing %}<span class="tag">Missing</span>{% endif %}

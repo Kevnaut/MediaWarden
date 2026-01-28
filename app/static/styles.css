@@ -26,6 +26,10 @@ body[data-theme="dark"] {
   --divider: rgba(255, 255, 255, 0.12);
 }
 
+body[data-theme="dark"] .topbar {
+  background: rgba(20, 24, 23, 0.8);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -110,10 +114,40 @@ button, .button {
   font-weight: 500;
 }
 
-button.theme-toggle {
-  background: transparent;
+.topbar nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 1px solid var(--accent);
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
   color: var(--accent);
+  background: transparent;
+}
+
+.theme-switch .thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: transform 0.2s ease;
+}
+
+.theme-switch[data-theme="dark"] .thumb {
+  transform: translateX(16px);
+}
+
+.theme-switch .sun,
+.theme-switch .moon {
+  font-size: 0.8rem;
+  opacity: 0.7;
 }
 
 button.ghost, .button.ghost {
