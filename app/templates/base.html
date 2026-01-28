@@ -13,11 +13,27 @@
       <a href="/">Libraries</a>
       <a href="/users">Users</a>
       <a href="/logs">Logs</a>
+      <button type="button" class="theme-toggle" id="theme-toggle">Theme</button>
       <a href="/logout">Logout</a>
     </nav>
   </header>
   <main class="content">
     {% block content %}{% endblock %}
   </main>
+  <script>
+    const toggle = document.getElementById("theme-toggle");
+    const stored = localStorage.getItem("mw-theme");
+    if (stored) {
+      document.body.setAttribute("data-theme", stored);
+    }
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        const current = document.body.getAttribute("data-theme") || "light";
+        const next = current === "dark" ? "light" : "dark";
+        document.body.setAttribute("data-theme", next);
+        localStorage.setItem("mw-theme", next);
+      });
+    }
+  </script>
 </body>
 </html>

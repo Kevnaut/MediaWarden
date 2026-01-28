@@ -10,6 +10,20 @@
   --accent-soft: #d5e4e1;
   --danger: #c14d3c;
   --shadow: 0 12px 30px rgba(17, 17, 17, 0.08);
+  --divider: rgba(0, 0, 0, 0.12);
+}
+
+body[data-theme="dark"] {
+  --bg: #111312;
+  --bg-accent: #1b201e;
+  --ink: #f4f2ea;
+  --muted: #b5b2a9;
+  --card: #171a19;
+  --accent: #5aa39b;
+  --accent-soft: #263331;
+  --danger: #e17a6a;
+  --shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+  --divider: rgba(255, 255, 255, 0.12);
 }
 
 * {
@@ -36,7 +50,7 @@ a {
   padding: 20px 32px;
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--divider);
 }
 
 .brand {
@@ -94,6 +108,12 @@ button, .button {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
+}
+
+button.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
 }
 
 button.ghost, .button.ghost {
@@ -238,13 +258,13 @@ thead {
 th, td {
   text-align: left;
   padding: 12px 14px;
-  border-bottom: 1px solid #efefef;
+  border-bottom: 1px solid var(--divider);
   font-size: 0.9rem;
 }
 
 thead th {
   position: relative;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-right: 1px solid var(--divider);
 }
 
 thead th:last-child {
@@ -259,7 +279,7 @@ table.resizable th {
   position: absolute;
   right: 0;
   top: 0;
-  width: 8px;
+  width: 12px;
   height: 100%;
   cursor: col-resize;
 }
@@ -267,11 +287,11 @@ table.resizable th {
 .col-resizer::after {
   content: "";
   position: absolute;
-  left: 3px;
+  left: 5px;
   top: 6px;
   bottom: 6px;
   width: 1px;
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--divider);
 }
 
 .tag {

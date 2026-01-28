@@ -109,12 +109,7 @@ def fetch_metadata_map(library: Library, limit: int | None = None) -> dict:
     mapping: dict[str, dict] = {}
     for item in items:
         last_viewed = item.get("lastViewedAt")
-        updated_at = item.get("updatedAt")
-        touched_at = None
-        if last_viewed:
-            touched_at = int(last_viewed)
-        if updated_at:
-            touched_at = max(touched_at or 0, int(updated_at)) or int(updated_at)
+        touched_at = int(last_viewed) if last_viewed else None
         media = item.get("Media", [])
         if isinstance(media, dict):
             media = [media]
