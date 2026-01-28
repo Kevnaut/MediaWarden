@@ -294,6 +294,7 @@ async def library_detail(
     min_size_gb: str | None = None,
     resolution: str | None = None,
     older_than_days: str | None = None,
+    last_watched_older_than_days: str | None = None,
     sort: str | None = None,
     direction: str | None = None,
     show: str | None = None,
@@ -331,12 +332,19 @@ async def library_detail(
             query = query.filter(MediaItem.modified_at <= cutoff)
         except ValueError:
             pass
+    if last_watched_older_than_days and library.enable_plex:
+        try:
+            cutoff = datetime.utcnow() - timedelta(days=float(last_watched_older_than_days))
+            query = query.filter(MediaItem.last_watched_at <= cutoff)
+        except ValueError:
+            pass
 
     sort_map = {
         "name": MediaItem.name,
         "size": MediaItem.size_bytes,
         "modified": MediaItem.modified_at,
         "resolution": MediaItem.resolution,
+        "plex": MediaItem.last_watched_at,
     }
     sort_key = sort if sort in sort_map else "name"
     sort_dir = "desc" if direction == "desc" else "asc"
@@ -382,6 +390,7 @@ async def library_detail(
             "min_size_gb": min_size_gb,
             "resolution": resolution,
             "older_than_days": older_than_days,
+            "last_watched_older_than_days": last_watched_older_than_days,
             "sort_key": sort_key,
             "sort_dir": sort_dir,
             "sort_url": sort_url,

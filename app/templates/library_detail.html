@@ -46,7 +46,10 @@
         <option value="1280x720"></option>
         <option value="3840x2160"></option>
       </datalist>
-      <input type="text" name="older_than_days" placeholder="Older than (days)" value="{{ older_than_days or '' }}" />
+      <input type="text" name="older_than_days" placeholder="Modified older than (days)" value="{{ older_than_days or '' }}" />
+      {% if library.enable_plex %}
+      <input type="text" name="last_watched_older_than_days" placeholder="Last watched older than (days)" value="{{ last_watched_older_than_days or '' }}" />
+      {% endif %}
       <label class="inline"><input type="checkbox" name="missing" value="true" {% if missing %}checked{% endif %}/> Missing</label>
       <label class="inline"><input type="checkbox" name="in_trash" value="true" {% if in_trash %}checked{% endif %}/> In trash</label>
       <button type="submit">Apply filters</button>
@@ -123,7 +126,7 @@
       <th>Resolution</th>
       <th>Modified</th>
       {% if library.enable_plex %}
-      <th>Plex Touched</th>
+      <th>Last Watched</th>
       {% endif %}
       <th>Status</th>
     </tr>
@@ -177,7 +180,7 @@
       <th><a href="{{ sort_url('resolution') }}">Resolution</a></th>
       <th><a href="{{ sort_url('modified') }}">Modified</a></th>
       {% if library.enable_plex %}
-      <th>Plex Touched</th>
+      <th><a href="{{ sort_url('plex') }}">Last Watched</a></th>
       {% endif %}
       <th>Status</th>
     </tr>

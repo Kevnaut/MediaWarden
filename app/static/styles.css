@@ -242,6 +242,15 @@ th, td {
   font-size: 0.9rem;
 }
 
+thead th {
+  position: relative;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+thead th:last-child {
+  border-right: none;
+}
+
 table.resizable th {
   position: relative;
 }
