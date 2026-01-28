@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from ..config import settings

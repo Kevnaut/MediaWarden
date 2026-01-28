@@ -57,6 +57,20 @@ def _normalize_url(value: str | None) -> str | None:
     return f"http://{cleaned}"
 
 
+def _normalize_token(value: str | None) -> str | None:
+    if value is None:
+        return None
+    token = value.strip()
+    if not token:
+        return None
+    # If user pasted from a URL, strip query params.
+    if "&" in token:
+        token = token.split("&", 1)[0]
+    if "?" in token:
+        token = token.split("?", 1)[0]
+    return token
+
+
 def _build_tv_tree(items: list[MediaItem], root_path: str) -> dict:
     tree: dict[str, dict[str, list[MediaItem]]] = {}
     for item in items:
@@ -242,7 +256,7 @@ async def library_create(
         min_seeders=_parse_int(min_seeders, 0),
         display_mode=display_mode or "flat",
         plex_url=_normalize_url(plex_url),
-        plex_token=plex_token,
+        plex_token=_normalize_token(plex_token),
         plex_section_id=plex_section_id.strip() if plex_section_id else None,
         plex_root_path=plex_root_path.strip() if plex_root_path else None,
         arr_url=_normalize_url(arr_url),
@@ -489,7 +503,7 @@ async def library_update(
     library.min_seeders = _parse_int(min_seeders, 0)
     library.display_mode = display_mode or "flat"
     library.plex_url = _normalize_url(plex_url)
-    library.plex_token = plex_token
+    library.plex_token = _normalize_token(plex_token)
     library.plex_section_id = plex_section_id.strip() if plex_section_id else None
     library.plex_root_path = plex_root_path.strip() if plex_root_path else None
     library.arr_url = _normalize_url(arr_url)
