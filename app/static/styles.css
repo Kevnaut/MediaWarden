@@ -190,6 +190,22 @@ select {
   padding-left: 18px;
 }
 
+.tv-table td, .tv-table th {
+  border-bottom: 1px solid #efefef;
+}
+
+.tv-indent-0 {
+  padding-left: 4px;
+}
+
+.tv-indent-1 {
+  padding-left: 22px;
+}
+
+.tv-indent-2 {
+  padding-left: 40px;
+}
+
 .filters input[type="text"] {
   max-width: 240px;
 }

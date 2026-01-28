@@ -64,28 +64,53 @@
   </form>
 </div>
 {% if tv_tree %}
-<div class="tv-tree">
-  {% for show, seasons in tv_tree.items() %}
-  <details open>
-    <summary><strong>{{ show }}</strong></summary>
-    {% for season, episodes in seasons.items() %}
-    <details class="tv-season">
-      <summary>{{ season }}</summary>
-      <ul>
-        {% for item in episodes %}
-        <li>
-          <label class="inline">
-            <input type="checkbox" name="media_ids" value="{{ item.id }}" form="bulk-action-form" />
-            {{ item.name }}
-          </label>
-        </li>
+<table class="tv-table">
+  <thead>
+    <tr>
+      <th><input type="checkbox" id="select-all" /></th>
+      <th>Name</th>
+      <th>Size (GB)</th>
+      <th>Resolution</th>
+      <th>Modified</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for show, seasons in tv_tree|dictsort %}
+    <tr class="tv-show">
+      <td><input type="checkbox" class="tv-show-toggle" data-show="{{ show }}" /></td>
+      <td class="tv-indent-0"><strong>{{ show }}</strong></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+      {% for season, episodes in seasons|dictsort %}
+      <tr class="tv-season">
+        <td><input type="checkbox" class="tv-season-toggle" data-show="{{ show }}" data-season="{{ season }}" /></td>
+        <td class="tv-indent-1">{{ season }}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+        {% for item in episodes|sort(attribute='name') %}
+        <tr class="tv-episode">
+          <td><input type="checkbox" name="media_ids" value="{{ item.id }}" form="bulk-action-form" data-show="{{ show }}" data-season="{{ season }}" /></td>
+          <td class="tv-indent-2">{{ item.name }}</td>
+          <td>{{ "%.2f"|format((item.size_bytes or 0) / 1073741824) }}</td>
+          <td>{{ item.resolution or '-' }}</td>
+          <td>{{ item.modified_at }}</td>
+          <td>
+            {% if item.is_in_trash %}<span class="tag warn">Trash</span>{% endif %}
+            {% if item.is_missing %}<span class="tag">Missing</span>{% endif %}
+          </td>
+        </tr>
         {% endfor %}
-      </ul>
-    </details>
+      {% endfor %}
     {% endfor %}
-  </details>
-  {% endfor %}
-</div>
+  </tbody>
+</table>
 {% elif items %}
 <table class="resizable">
   <thead>
@@ -126,6 +151,9 @@
   if (selectAll) {
     selectAll.addEventListener("change", () => {
       document.querySelectorAll("input[name='media_ids']").forEach((cb) => {
+        cb.checked = selectAll.checked;
+      });
+      document.querySelectorAll(".tv-show-toggle, .tv-season-toggle").forEach((cb) => {
         cb.checked = selectAll.checked;
       });
     });
@@ -202,5 +230,24 @@
   if (resizableTable) {
     makeResizable(resizableTable);
   }
+
+  document.querySelectorAll(".tv-show-toggle").forEach((toggle) => {
+    toggle.addEventListener("change", () => {
+      const show = toggle.dataset.show;
+      document.querySelectorAll(`input[data-show='${show}']`).forEach((cb) => {
+        cb.checked = toggle.checked;
+      });
+    });
+  });
+
+  document.querySelectorAll(".tv-season-toggle").forEach((toggle) => {
+    toggle.addEventListener("change", () => {
+      const show = toggle.dataset.show;
+      const season = toggle.dataset.season;
+      document.querySelectorAll(`input[data-show='${show}'][data-season='${season}']`).forEach((cb) => {
+        cb.checked = toggle.checked;
+      });
+    });
+  });
 </script>
 {% endblock %}
